@@ -1,0 +1,13 @@
+﻿@page "/"
+@rendermode InteractiveServer
+
+<h3>Rich Text Editor</h3>
+
+<RichTextEditor @bind-Value="content" />
+
+<p><strong>Content:</strong></p>
+<div>@((MarkupString)content)</div>
+
+@code {
+    private string content = "<p>Hello, world!</p>";
+}
