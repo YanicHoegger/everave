@@ -5,8 +5,6 @@
 	Italic,
 	Underline,
 	BlockQuote,
-	Base64UploadAdapter,
-	CloudServices,
 	Essentials,
 	Heading,
 	Image,
@@ -38,11 +36,9 @@ export function initializeCKEditor(editorId, dotNetHelper) {
         .create(document.querySelector(`#${editorId}`), {
             licenseKey: 'GPL',
 			plugins: [
-				SimpleUploadAdapter,
 				Autoformat,
 				BlockQuote,
 				Bold,
-				CloudServices,
 				Essentials,
 				Heading,
 				Image,
@@ -51,7 +47,6 @@ export function initializeCKEditor(editorId, dotNetHelper) {
 				ImageStyle,
 				ImageToolbar,
 				ImageUpload,
-				Base64UploadAdapter,
 				Indent,
 				IndentBlock,
 				Italic,
@@ -62,6 +57,7 @@ export function initializeCKEditor(editorId, dotNetHelper) {
 				Paragraph,
 				PasteFromOffice,
 				PictureEditing,
+				SimpleUploadAdapter,
 				Table,
 				TableColumnResize,
 				TableToolbar,
@@ -166,7 +162,7 @@ export function initializeCKEditor(editorId, dotNetHelper) {
 				contentToolbar: ['tableColumn', 'tableRow', 'mergeTableCells']
 			},
             simpleUpload: {
-                uploadUrl: '/upload/image',
+				uploadUrl: '/image/upload',
             }
         })
         .then(editor => {
@@ -176,5 +172,5 @@ export function initializeCKEditor(editorId, dotNetHelper) {
         })
         .catch(error => {
             console.error(error);
-        });
+	     });
 }

@@ -24,7 +24,7 @@ namespace everave.server.Components.Controllers
             if (response.IsSuccessStatusCode)
             {
                 var result = await response.Content.ReadAsStringAsync();
-                return Ok(new { url = result });
+                return Ok(new { url = $"/image/{result}" });
             }
             else
             {

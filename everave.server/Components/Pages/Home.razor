@@ -6,8 +6,8 @@
 <RichTextEditor @bind-Value="content" />
 
 <p><strong>Content:</strong></p>
-<div>@((MarkupString)content)</div>
+<div class="ck-content">@((MarkupString)content)</div>
 
 @code {
-    private string content = "<p>Hello, world!</p>";
+    private string content = @"";
 }
