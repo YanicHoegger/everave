@@ -1,0 +1,21 @@
+services:
+  everave.server:
+    image: ${DOCKER_REGISTRY-}everaveserver
+    build:
+      context: .
+      dockerfile: everave.server/Dockerfile
+    ports:
+      - "5000:80"
+    depends_on:
+      - imagehandler
+
+  imagehandler:
+    image: imagehandler
+    build:
+      context: .
+      dockerfile: ImageService/Dockerfile
+    volumes:
+      - image-storage:/app/images  # mount point inside the container
+
+volumes:
+  image-storage:

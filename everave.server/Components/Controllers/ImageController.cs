@@ -2,31 +2,47 @@
 
 namespace everave.server.Components.Controllers
 {
-    [Route("upload/[controller]")]
+    [Route("[controller]")]
     [ApiController]
-    public class ImageController(IWebHostEnvironment env) : ControllerBase
+    public class ImageController(IHttpClientFactory factory) : ControllerBase
     {
-        [HttpPost]
+        private readonly HttpClient _httpClient = factory.CreateClient("ImageService");
+
+        [HttpPost("upload")]
         public async Task<IActionResult> UploadImage([FromForm] IFormFile upload)
         {
             if (upload == null || upload.Length == 0)
                 return BadRequest("Upload failed");
 
-            var uploadsFolder = Path.Combine(env.WebRootPath, "uploads");
-            if (!Directory.Exists(uploadsFolder))
-                Directory.CreateDirectory(uploadsFolder);
+            // Forward the file to the image handler
+            var formData = new MultipartFormDataContent();
+            var fileContent = new StreamContent(upload.OpenReadStream());
+            formData.Add(fileContent, "upload", upload.FileName);
 
-            var fileName = Guid.NewGuid().ToString() + Path.GetExtension(upload.FileName);
-            var filePath = Path.Combine(uploadsFolder, fileName);
+            var response = await _httpClient.PostAsync("ImageUpload", formData);
 
-            await using (var stream = System.IO.File.Create(filePath))
+            if (response.IsSuccessStatusCode)
             {
-                await upload.CopyToAsync(stream);
+                var result = await response.Content.ReadAsStringAsync();
+                return Ok(new { url = result });
             }
+            else
+            {
+                return StatusCode(500, "Failed to upload the image to the image handler");
+            }
+        }
 
-            var url = $"{Request.Scheme}://{Request.Host}/uploads/{fileName}";
+        [HttpGet("{fileName}")]
+        public async Task<IActionResult> GetImage(string fileName)
+        {
+            var response = await _httpClient.GetAsync($"/uploads/{fileName}");
 
-            return Ok(new { url });
+            if (!response.IsSuccessStatusCode)
+                return NotFound();
+
+            var content = await response.Content.ReadAsStreamAsync();
+            var contentType = response.Content.Headers.ContentType?.ToString() ?? "application/octet-stream";
+            return File(content, contentType);
         }
     }
 }

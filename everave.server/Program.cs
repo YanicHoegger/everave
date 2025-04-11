@@ -7,6 +7,12 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 builder.Services.AddControllers();
+builder.Services.AddHttpClient();
+
+builder.Services.AddHttpClient("ImageService", client =>
+{
+    client.BaseAddress = new Uri("http://imagehandler:8080");
+});
 
 var app = builder.Build();
 
