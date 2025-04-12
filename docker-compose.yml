@@ -15,7 +15,15 @@ services:
       context: .
       dockerfile: ImageService/Dockerfile
     volumes:
-      - image-storage:/app/images  # mount point inside the container
+      - image-storage:/app/images 
+
+  mongodb:
+    image: mongo
+    container_name: mongodb
+    restart: always
+    volumes:
+      - mongodb_data:/data/db
 
 volumes:
   image-storage:
+  mongodb_data:

@@ -1,13 +1,65 @@
 ﻿@page "/"
 @rendermode InteractiveServer
+@using everave.server.Forum
+@inject PersistenceService PersistenceService
 
-<h3>Rich Text Editor</h3>
+<h3>Forum</h3>
 
-<RichTextEditor @bind-Value="content" />
+@if (entries == null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    foreach (var entry in entries)
+    {
+        <div class="entry">
+            <div class="ck-content">
+                @((MarkupString)entry.HtmlContent)
+            </div>
+            <hr />
+        </div>
+    }
 
-<p><strong>Content:</strong></p>
-<div class="ck-content">@((MarkupString)content)</div>
+    if (isAdding)
+    {
+        <div class="editor">
+            <everave.server.Components.RichTextEditor @bind-Value="newContent" />
+            <button class="btn btn-success mt-2" @onclick="SaveEntry">Speichern</button>
+        </div>
+    }
+    else
+    {
+        <button class="btn btn-primary" @onclick="() => AddEntry()">Antworten</button>
+    }
+}
 
 @code {
-    private string content = @"";
+    private List<Entry>? entries;
+    private bool isAdding = false;
+    private string newContent = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        entries = await PersistenceService.GetAllAsync();
+    }
+
+    private async Task SaveEntry()
+    {
+        if (!string.IsNullOrWhiteSpace(newContent))
+        {
+            var entry = new Entry { UserId = Guid.Empty, HtmlContent = newContent, CreatedAt = DateTime.UtcNow };
+            await PersistenceService.SaveAsync(entry);
+
+            entries!.Add(entry);
+            newContent = string.Empty;
+            isAdding = false;
+        }
+    }
+
+    private void AddEntry()
+    {
+        isAdding = true;
+    }
 }
+

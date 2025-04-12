@@ -1,4 +1,5 @@
 using everave.server.Components;
+using everave.server.Forum;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,6 +14,8 @@ builder.Services.AddHttpClient("ImageService", client =>
 {
     client.BaseAddress = new Uri("http://imagehandler:8080");
 });
+
+builder.Services.AddSingleton<PersistenceService>();
 
 var app = builder.Build();
 
