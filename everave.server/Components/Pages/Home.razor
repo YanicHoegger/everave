@@ -1,65 +1,19 @@
 ﻿@page "/"
-@rendermode InteractiveServer
-@using everave.server.Forum
-@inject IForumService ForumService
 
-<h3>Forum</h3>
+<h1 class="display-4">eve&amp;rave Forumstest</h1>
 
-@if (entries == null)
-{
-    <p>Loading...</p>
-}
-else
-{
-    foreach (var entry in entries)
-    {
-        <div class="entry">
-            <div class="ck-content">
-                @((MarkupString)entry.HtmlContent)
-            </div>
-            <hr />
-        </div>
-    }
+<p class="lead">
+    Willkommen! Dies ist eine Testseite für ein neues Forumskonzept rund um eve&amp;rave.
+</p>
 
-    if (isAdding)
-    {
-        <div class="editor">
-            <everave.server.Components.RichTextEditor @bind-Value="newContent" />
-            <button class="btn btn-success mt-2" @onclick="SaveEntry">Speichern</button>
-        </div>
-    }
-    else
-    {
-        <button class="btn btn-primary" @onclick="() => AddEntry()">Antworten</button>
-    }
-}
+<p>
+    Bitte beachte: Diese Seite steht <strong>nicht</strong> in Verbindung mit eve&amp;rave. Alle Aktionen hier sind rein experimentell und haben keinerlei Auswirkungen auf die offizielle Plattform.
+</p>
 
-@code {
-    private List<Entry>? entries;
-    private bool isAdding = false;
-    private string newContent = string.Empty;
+<p>
+    Du kannst dir die aktuellen Foren hier ansehen:
+</p>
 
-    protected override async Task OnInitializedAsync()
-    {
-        entries = await ForumService.GetEntriesByThreadIdAsync(new MongoDB.Bson.ObjectId());
-    }
+<a href="/forums" class="btn btn-primary">Zu den Foren</a>
 
-    private async Task SaveEntry()
-    {
-        if (!string.IsNullOrWhiteSpace(newContent))
-        {
-            var entry = new Entry { HtmlContent = newContent, CreatedAt = DateTime.UtcNow };
-            await ForumService.AddEntryAsync(entry);
-
-            entries!.Add(entry);
-            newContent = string.Empty;
-            isAdding = false;
-        }
-    }
-
-    private void AddEntry()
-    {
-        isAdding = true;
-    }
-}
 

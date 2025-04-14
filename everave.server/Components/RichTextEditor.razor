@@ -1,5 +1,4 @@
 ﻿@inject IJSRuntime JS
-@implements IDisposable
 
 <div>
     <div id="@EditorId"></div>
@@ -27,10 +26,5 @@
     {
         Value = data;
         await ValueChanged.InvokeAsync(data);
-    }
-
-    public void Dispose()
-    {
-        _dotNetRef?.Dispose();
     }
 }
