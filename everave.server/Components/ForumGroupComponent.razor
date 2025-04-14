@@ -1,0 +1,142 @@
+﻿@using everave.server.Forum
+@inject IForumService ForumService
+
+@if(forums == null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">@ForumGroup?.Description</h5>
+        </div>
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                <tr>
+                    <th>Name</th>
+                    <th style="width: 15%;">Topics</th>
+                    <th style="width: 15%;">Entries</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var forum in forums)
+                {
+                    <tr>
+                        <td>
+                            <a href="@($"/forum/{forum.Id}")" class="fw-bold text-decoration-none">
+                                @forum.Name
+                            </a><br />
+                            <small class="text-muted">@forum.Description</small>
+                        </td>
+                        <td>@forum.NumberOfTopics</td>
+                        <td>@forum.NumberOfEntries</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+
+        <EditForm EditContext="editContext" OnValidSubmit="AddForum">
+            <DataAnnotationsValidator />
+
+            <fieldset class="border rounded p-3">
+                <legend class="float-none fs-6 text-secondary mb-0 px-2">Neues Forum erstellen</legend>
+
+                <div class="row align-items-end g-2">
+                    <div class="col">
+                        <label for="forumName" class="form-label">Name</label>
+                        <InputText id="forumName" @bind-Value="Model!.Name" class="form-control" />
+                        <ValidationMessage For="() => Model!.Name" />
+                    </div>
+
+                    <div class="col">
+                        <label for="forumDescription" class="form-label">Beschreibung</label>
+                        <InputText id="forumDescription" @bind-Value="Model!.Description" class="form-control" />
+                        <ValidationMessage For="() => Model!.Description" />
+                    </div>
+
+                    <div class="col-auto">
+                        <button type="submit" class="btn btn-success">Hinzufügen</button>
+                    </div>
+                </div>
+            </fieldset>
+        </EditForm>
+    </div>
+}
+
+@code {
+    private List<Forum>? forums;
+
+    private EditContext? editContext;
+    [SupplyParameterFromForm]
+    private NewForum? Model { get; set; }
+    private ValidationMessageStore? messageStore;
+
+    [Parameter] public ForumGroup? ForumGroup { get; set; }
+
+    protected override Task OnInitializedAsync()
+    {
+        Model ??= new();
+        editContext = new(Model);
+        editContext.OnValidationRequested += HandleValidationRequested;
+        messageStore = new(editContext);
+
+        return LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        forums = await ForumService.GetForumsByGroupIdAsync(ForumGroup?.Id ?? default).ConfigureAwait(false);
+    }
+
+    private async Task AddForum()
+    {
+        var forum = new Forum
+        {
+            Description = Model!.Description,
+            Name = Model!.Name,
+            GroupId = ForumGroup!.Id
+        };
+        await ForumService.AddForumAsync(forum).ConfigureAwait(false);
+
+        await LoadData();
+
+        await InvokeAsync(() =>
+        {
+            Model = new NewForum();
+            editContext = new EditContext(Model);
+            StateHasChanged();
+        });
+    }
+
+    private void HandleValidationRequested(object? sender,
+       ValidationRequestedEventArgs args)
+    {
+        messageStore?.Clear();
+
+        if (string.IsNullOrWhiteSpace(Model!.Name))
+        {
+            messageStore?.Add(() => Model.Name, "Forum name cannot be empty.");
+        }
+
+        var exists = forums!.Any(g => string.Equals(g.Name, Model!.Name, StringComparison.OrdinalIgnoreCase));
+
+        if (exists)
+        {
+            messageStore?.Add(() => Model.Name, "A forum with that name already exists.");
+        }
+
+        if (string.IsNullOrWhiteSpace(Model!.Description))
+        {
+            messageStore?.Add(() => Model.Description, "Forum description cannot be empty.");
+        }
+    }
+
+    public class NewForum
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+    }
+}

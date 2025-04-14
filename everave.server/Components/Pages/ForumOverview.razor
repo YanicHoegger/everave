@@ -1,0 +1,92 @@
+﻿@page "/forums"
+@rendermode InteractiveServer
+@using everave.server.Forum
+@inject IForumService ForumService
+
+@if (forumsByGroup == null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    foreach (var group in forumsByGroup)
+    {
+        <ForumGroupComponent ForumGroup="group"/>
+    }
+
+    <EditForm EditContext="editContext" OnValidSubmit="AddForumGroup">
+        <DataAnnotationsValidator />
+
+        <fieldset class="border rounded p-3">
+            <legend class="float-none fs-6 text-secondary mb-0 px-2">Neue Forumgruppe erstellen</legend>
+
+            <div class="row align-items-end g-2">
+                <div class="col">
+                    <label for="forumGroupName" class="form-label">Name</label>
+                    <InputText id="forumGroupName" @bind-Value="Model!.Description" class="form-control" />
+                    <ValidationMessage For="() => Model!.Description" />
+                </div>
+
+                <div class="col-auto">
+                    <button type="submit" class="btn btn-success">Hinzufügen</button>
+                </div>
+            </div>
+        </fieldset>
+    </EditForm>
+}
+
+@code {
+    private List<ForumGroup>? forumsByGroup;
+
+    private EditContext? editContext;
+    [SupplyParameterFromForm]
+    private NewGroup? Model { get; set; }
+    private ValidationMessageStore? messageStore;
+
+    protected override Task OnInitializedAsync()
+    {
+        Model ??= new();
+        editContext = new(Model);
+        editContext.OnValidationRequested += HandleValidationRequested;
+        messageStore = new(editContext);
+
+        return LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        forumsByGroup = await ForumService.GetAllForumGroupsAsync().ConfigureAwait(false);
+    }
+
+    private async Task AddForumGroup()
+    {
+        await ForumService.AddForumGroupAsync(new ForumGroup() { Description = Model!.Description }).ConfigureAwait(false);
+        await LoadData().ConfigureAwait(false);
+
+        StateHasChanged();
+    }
+
+    private void HandleValidationRequested(object? sender,
+       ValidationRequestedEventArgs args)
+    {
+        messageStore?.Clear();
+
+        var newDescription = Model!.Description;
+        if (string.IsNullOrWhiteSpace(newDescription))
+        {
+            messageStore?.Add(() => Model.Description, "Group name cannot be empty.");
+        }
+
+        var exists = forumsByGroup!.Any(g => string.Equals(g.Description, newDescription, StringComparison.OrdinalIgnoreCase));
+
+        if (exists)
+        {
+            messageStore?.Add(() => Model.Description, "A group with that name already exists.");
+        }
+    }
+
+    public class NewGroup
+    {
+        public string Description { get; set; } = string.Empty;
+    }
+}

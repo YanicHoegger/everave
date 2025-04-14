@@ -1,5 +1,6 @@
 using everave.server.Components;
 using everave.server.Forum;
+using MongoDB.Driver;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,7 +16,13 @@ builder.Services.AddHttpClient("ImageService", client =>
     client.BaseAddress = new Uri("http://imagehandler:8080");
 });
 
-builder.Services.AddSingleton<PersistenceService>();
+builder.Services.AddSingleton<IForumService, ForumService>();
+builder.Services.AddSingleton(sp =>
+{
+    var config = sp.GetService<IConfiguration>() ?? throw new InvalidOperationException($"{nameof(IConfiguration)} could not be found");
+    var client = new MongoClient(config.GetConnectionString("MongoDb"));
+    return client.GetDatabase("everave");
+});
 
 var app = builder.Build();
 

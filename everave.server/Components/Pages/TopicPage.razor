@@ -1,9 +1,8 @@
-﻿@page "/"
+﻿@page "/topic/{id}"
 @rendermode InteractiveServer
 @using everave.server.Forum
+@using MongoDB.Bson
 @inject IForumService ForumService
-
-<h3>Forum</h3>
 
 @if (entries == null)
 {
@@ -35,20 +34,28 @@ else
 }
 
 @code {
+    [Parameter]
+    public string id { get; set; } = default!;
+
     private List<Entry>? entries;
     private bool isAdding = false;
     private string newContent = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
-        entries = await ForumService.GetEntriesByThreadIdAsync(new MongoDB.Bson.ObjectId());
+        entries = await ForumService.GetEntriesByThreadIdAsync(new ObjectId(id));
     }
 
     private async Task SaveEntry()
     {
         if (!string.IsNullOrWhiteSpace(newContent))
         {
-            var entry = new Entry { HtmlContent = newContent, CreatedAt = DateTime.UtcNow };
+            var entry = new Entry
+                {
+                    HtmlContent = newContent,
+                    CreatedAt = DateTime.UtcNow,
+                    TopicId = new ObjectId(id)
+                };
             await ForumService.AddEntryAsync(entry);
 
             entries!.Add(entry);
@@ -62,4 +69,3 @@ else
         isAdding = true;
     }
 }
-
