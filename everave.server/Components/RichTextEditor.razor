@@ -9,7 +9,6 @@
     [Parameter] public string? Value { get; set; }
     [Parameter] public EventCallback<string> ValueChanged { get; set; }
 
-    private IJSObjectReference? _module;
     private DotNetObjectReference<RichTextEditor>? _dotNetRef;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

@@ -1,5 +1,10 @@
+using AspNetCore.Identity.Mongo;
+using AspNetCore.Identity.Mongo.Model;
 using everave.server.Components;
 using everave.server.Forum;
+using everave.server.UserManagement;
+using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.Identity;
 using MongoDB.Driver;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -17,12 +22,32 @@ builder.Services.AddHttpClient("ImageService", client =>
 });
 
 builder.Services.AddSingleton<IForumService, ForumService>();
+
+const string mongodb = "MongoDb";
 builder.Services.AddSingleton(sp =>
 {
     var config = sp.GetService<IConfiguration>() ?? throw new InvalidOperationException($"{nameof(IConfiguration)} could not be found");
-    var client = new MongoClient(config.GetConnectionString("MongoDb"));
+    var client = new MongoClient(config.GetConnectionString(mongodb));
     return client.GetDatabase("everave");
 });
+
+builder.Services.AddIdentityMongoDbProvider<ApplicationUser, MongoRole>(identityOptions =>
+{
+    identityOptions.Password.RequireDigit = false;
+    identityOptions.Password.RequireNonAlphanumeric = false;
+    identityOptions.Password.RequiredLength = 6;
+}, mongoIdentityOptions =>
+{
+    mongoIdentityOptions.ConnectionString = builder.Configuration.GetConnectionString(mongodb);
+});
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultScheme = IdentityConstants.ApplicationScheme;
+});
+
+builder.Services.AddScoped<AuthenticationStateProvider, MongoAuthenticationStateProvider>();
+builder.Services.AddHttpContextAccessor();
 
 var app = builder.Build();
 
@@ -35,6 +60,9 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.UseStaticFiles();
 app.MapControllers();
