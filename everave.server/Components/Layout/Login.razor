@@ -1,4 +1,5 @@
 ﻿@using System.ComponentModel.DataAnnotations
+@using everave.server.UserManagement
 @using Microsoft.AspNetCore.Components.Authorization
 @inject AuthenticationStateProvider AuthProvider
 @inject NavigationManager Navigation
@@ -45,6 +46,9 @@
     </NotAuthorized>
 </AuthorizeView>
 
+<AuthorizeView Roles="@ApplicationUser.AdminRole">
+    <a href="/admin" class="btn btn-link btn-sm">Administration</a>
+</AuthorizeView>
 
 @code {
     private LoginModel loginModel = new();

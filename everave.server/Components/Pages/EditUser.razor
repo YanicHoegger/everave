@@ -1,0 +1,86 @@
+﻿@page "/admin/edit-user/{userId}"
+@rendermode InteractiveServer
+@using AspNetCore.Identity.Mongo.Model
+@using Microsoft.AspNetCore.Identity
+@using everave.server.UserManagement
+@using MongoDB.Driver.Linq
+@inject UserManager<ApplicationUser> UserManager
+@inject RoleManager<MongoRole> RoleManager
+@inject NavigationManager Navigation
+
+<h3>Edit User</h3>
+
+@if (user == null)
+{
+    <p>Loading user...</p>
+}
+else
+{
+    <EditForm OnValidSubmit="SaveUser" Model="user">
+        <DataAnnotationsValidator />
+        <div class="mb-3">
+            <label for="username" class="form-label">Username</label>
+            <InputText id="username" @bind-Value="user.UserName" class="form-control" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Roles</label>
+            @foreach (var role in roles)
+            {
+                <div class="form-check">
+                    <InputCheckbox id="@role" @bind-Value="selectedRoles[role]" class="form-check-input" />
+                    <label for="@role" class="form-check-label">@role</label>
+                </div>
+            }
+        </div>
+        <button type="submit" class="btn btn-primary">Save</button>
+        <button type="button" class="btn btn-secondary" @onclick="Cancel">Cancel</button>
+    </EditForm>
+}
+
+@code {
+    [Parameter]
+    public string userId { get; set; } = default!;
+
+    private ApplicationUser? user;
+    private List<string?> roles = new();
+    private Dictionary<string, bool> selectedRoles = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        user = await UserManager.FindByIdAsync(userId);
+        roles = (await RoleManager.Roles.Select(r => r.Name).ToListAsync()).ToList();
+
+        if (user != null)
+        {
+            var userRoles = await UserManager.GetRolesAsync(user);
+            foreach (var role in roles)
+            {
+                selectedRoles[role] = userRoles.Contains(role);
+            }
+        }
+    }
+
+    private async Task SaveUser()
+    {
+        if (user != null)
+        {
+            // Update the user's roles
+            var currentRoles = await UserManager.GetRolesAsync(user);
+            await UserManager.RemoveFromRolesAsync(user, currentRoles);
+
+            var rolesToAdd = selectedRoles.Where(r => r.Value).Select(r => r.Key).ToList();
+            if (rolesToAdd.Any())
+            {
+                await UserManager.AddToRolesAsync(user, rolesToAdd);
+            }
+
+            await UserManager.UpdateAsync(user);
+            Navigation.NavigateTo("/admin");
+        }
+    }
+
+    private void Cancel()
+    {
+        Navigation.NavigateTo("/admin");
+    }
+}

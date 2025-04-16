@@ -39,7 +39,8 @@ builder.Services.AddIdentityMongoDbProvider<ApplicationUser, MongoRole>(identity
 }, mongoIdentityOptions =>
 {
     mongoIdentityOptions.ConnectionString = builder.Configuration.GetConnectionString(mongodb);
-});
+})
+.AddRoles<MongoRole>();
 
 builder.Services.AddAuthentication(options =>
 {
@@ -49,6 +50,8 @@ builder.Services.AddCascadingAuthenticationState();
 
 builder.Services.AddScoped<AuthenticationStateProvider, MongoAuthenticationStateProvider>();
 builder.Services.AddHttpContextAccessor();
+
+builder.Services.AddHostedService<CreateMasterAccountHostedService>();
 
 var app = builder.Build();
 

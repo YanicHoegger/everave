@@ -1,0 +1,78 @@
+﻿@page "/admin"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Identity
+@using everave.server.UserManagement
+@using Microsoft.AspNetCore.Components.Authorization
+@using MongoDB.Bson
+@inject UserManager<ApplicationUser> UserManager
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthProvider
+
+<h3>Admin Panel</h3>
+
+@if (!isAdmin)
+{
+    <p>You do not have access to this page.</p>
+}
+else if (users == null)
+{
+    <p>Loading users...</p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Username</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var user in users)
+            {
+                <tr>
+                    <td>@user.UserName</td>
+                    <td>
+                        <button class="btn btn-sm btn-primary" @onclick="() => EditUser(user.Id)">Edit</button>
+                        <button class="btn btn-sm btn-danger" @onclick="() => DeleteUser(user.Id)">Delete</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<ApplicationUser>? users;
+    private bool isAdmin;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        // Check if the user is an admin
+        isAdmin = user.Identity?.IsAuthenticated == true && user.IsInRole(ApplicationUser.AdminRole);
+
+        if (isAdmin)
+        {
+            // Load all users
+            users = UserManager.Users.ToList();
+        }
+    }
+
+    private void EditUser(ObjectId userId)
+    {
+        Navigation.NavigateTo($"/admin/edit-user/{userId}");
+    }
+
+    private async Task DeleteUser(ObjectId userId)
+    {
+        var user = await UserManager.FindByIdAsync(userId.ToString());
+        if (user != null)
+        {
+            await UserManager.DeleteAsync(user);
+            users = UserManager.Users.ToList(); // Refresh the user list
+        }
+    }
+}
