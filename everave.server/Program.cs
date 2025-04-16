@@ -45,6 +45,7 @@ builder.Services.AddAuthentication(options =>
 {
     options.DefaultScheme = IdentityConstants.ApplicationScheme;
 });
+builder.Services.AddCascadingAuthenticationState();
 
 builder.Services.AddScoped<AuthenticationStateProvider, MongoAuthenticationStateProvider>();
 builder.Services.AddHttpContextAccessor();

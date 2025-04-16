@@ -1,9 +1,7 @@
 ﻿@using System.ComponentModel.DataAnnotations
-@using everave.server.UserManagement
 @using Microsoft.AspNetCore.Components.Authorization
-@using Microsoft.AspNetCore.Identity
 @inject AuthenticationStateProvider AuthProvider
-@inject SignInManager<ApplicationUser> SignInManager
+@inject NavigationManager Navigation
 
 <AuthorizeView>
     <Authorized>
@@ -16,7 +14,7 @@
     </Authorized>
 
     <NotAuthorized Context="authContext">
-        <EditForm Action="/auth/login" Method="post" Model="@loginModel">
+        <EditForm Action="@($"/auth/login?returnUrl={Uri.EscapeDataString(Navigation.Uri)}")" Method="post" Model="@loginModel">
             <DataAnnotationsValidator />
 
             <div class="d-flex align-items-end flex-wrap gap-2">

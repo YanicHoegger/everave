@@ -9,18 +9,17 @@ namespace everave.server.Components.Controllers;
 public class AuthController(SignInManager<ApplicationUser> signInManager) : Controller
 {
     [HttpPost("login")]
-    public async Task<IActionResult> Login([FromForm] Login.LoginModel model)
+    public async Task<IActionResult> Login([FromForm] Login.LoginModel model, [FromQuery] string? returnUrl)
     {
         var result = await signInManager.PasswordSignInAsync(
             model.UserName, model.Password, model.IsPersistent, lockoutOnFailure: false);
 
         if (result.Succeeded)
         {
-            return Redirect("/forums");
+            return Redirect(returnUrl ?? "/"); ;
         }
 
-        // Handle login failure
-        return Redirect("/login?error=true");
+        return Ok("Falsches login");
     }
 
     [HttpPost("logout")]

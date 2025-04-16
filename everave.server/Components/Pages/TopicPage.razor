@@ -2,6 +2,7 @@
 @rendermode InteractiveServer
 @using everave.server.Forum
 @using MongoDB.Bson
+@using Microsoft.AspNetCore.Components.Authorization
 @inject IForumService ForumService
 
 @if (entries == null)
@@ -29,7 +30,9 @@ else
     }
     else
     {
-        <button class="btn btn-primary" @onclick="() => AddEntry()">Antworten</button>
+        <AuthorizeView>
+            <button class="btn btn-primary" @onclick="() => AddEntry()">Antworten</button>
+        </AuthorizeView>
     }
 }
 

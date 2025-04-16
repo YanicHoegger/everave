@@ -1,7 +1,9 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 namespace everave.server.Components.Controllers
 {
+
     [Route("[controller]")]
     [ApiController]
     public class ImageController(IHttpClientFactory factory) : ControllerBase
@@ -9,6 +11,7 @@ namespace everave.server.Components.Controllers
         private readonly HttpClient _httpClient = factory.CreateClient("ImageService");
 
         [HttpPost("upload")]
+        [Authorize]
         public async Task<IActionResult> UploadImage([FromForm] IFormFile upload)
         {
             if (upload == null || upload.Length == 0)
