@@ -4,10 +4,10 @@
 @using everave.server.UserManagement
 @using MongoDB.Bson
 @using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Identity
 @inject IForumService ForumService
 @inject NavigationManager NavigationManager
-
-<h3>@forum?.Name</h3>
+@inject UserManager<ApplicationUser> UserManager
 
 @if (topics == null)
 {
@@ -17,7 +17,7 @@ else
 {
     <div class="card mb-4 shadow-sm">
         <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">Thema</h5>
+            <h5 class="mb-0">@forum?.Name</h5>
             <AuthorizeView>
                 <button class="btn btn-sm btn-light" @onclick="NavigateToAddTopic">Neues Thema</button>
             </AuthorizeView>
@@ -27,7 +27,8 @@ else
                 <thead class="table-light">
                     <tr>
                         <th>Name</th>
-                        <th style="width: 15%;">Entries</th>
+                        <th style="width: 15%;">Anzahl Beiträge</th>
+                        <th style="width: 25%;">Letzter Beitrag</th>
                         <AuthorizeView Roles="@ApplicationUser.AdminRole">
                             <th style="width: 50px" />
                         </AuthorizeView>
@@ -38,16 +39,30 @@ else
                     {
                         <tr>
                             <td>
-                                <a href="@($"/topic/{topic.Id}")" class="fw-bold text-decoration-none">
-                                    @topic.Title
+                                <a href="@($"/topic/{topic.Topic.Id}")" class="fw-bold text-decoration-none">
+                                    @topic.Topic.Title
                                 </a><br />
-                                <small class="text-muted">@topic.CreatedAt</small>
+                                <small class="text-muted">@topic.Topic.CreatedAt</small>
                             </td>
-                            <td>@topic.NumberOfEntries</td>
+                            <td>@topic.Topic.NumberOfEntries</td>
+                            <td>
+                                @if (topic.LastEntryDetails != null)
+                                {
+                                    <div>
+                                        <small class="text-muted">
+                                            @topic.LastEntryDetails.CreatedAt.ToString("g") by @topic.LastEntryDetails.Author
+                                        </small>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <small class="text-muted">No entries yet</small>
+                                }
+                            </td>
                             <AuthorizeView Roles="@ApplicationUser.AdminRole">
                                 <Delete Title="Thema löschen"
                                         Message="Möchten Sie dieses Forum wirklich löschen?"
-                                        OnDeleteConfirmed="() => DeleteTopic(topic)" />
+                                        OnDeleteConfirmed="() => DeleteTopic(topic.Topic)" />
                             </AuthorizeView>
                         </tr>
                     }
@@ -62,15 +77,32 @@ else
     public string id { get; set; } = default!;
 
     private Forum? forum;
-    private List<Topic>? topics;
+    private List<TopicDisplay>? topics;
 
     protected override async Task OnInitializedAsync()
     {
         forum = await ForumService.GetForumAsync(ForumId);
-        topics = await ForumService.GetTopicsByForumIdAsync(ForumId);
+        topics = (await ForumService.GetTopicsByForumIdAsync(ForumId))
+            .Select(x => new TopicDisplay()
+                {
+                    Topic = x,
+                    LastEntryDetails = x.LastEntry != null ? CreateLastEntryDetails(x).Result : null
+                }).ToList();
     }
 
     private ObjectId ForumId => new(id);
+
+    private async Task<LastEntryDetails> CreateLastEntryDetails(Topic topic)
+    {
+        var lastEntry = await ForumService.GetEntryById((ObjectId)topic.LastEntry!);
+        var user = await UserManager.FindByIdAsync(lastEntry.UserId.ToString());
+
+        return new LastEntryDetails
+            {
+                CreatedAt = lastEntry.CreatedAt,
+                Author = user?.UserName ?? string.Empty
+            };
+    }
 
     private void NavigateToAddTopic()
     {
@@ -81,5 +113,17 @@ else
     {
         await ForumService.DeleteTopicAsync(topic).ConfigureAwait(false);
         await OnInitializedAsync().ConfigureAwait(false);
+    }
+
+    public class TopicDisplay
+    {
+        public Topic Topic { get; set; } = new();
+        public LastEntryDetails? LastEntryDetails { get; set; }
+    }
+
+    public class LastEntryDetails
+    {
+        public DateTime CreatedAt { get; set; }
+        public string Author { get; set; } = string.Empty;
     }
 }

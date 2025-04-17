@@ -1,7 +1,11 @@
 ﻿@using everave.server.Forum
+@using everave.server.UserManagement
 @using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Identity
+@using MongoDB.Bson
 @inject IForumService ForumService
 @inject AuthenticationStateProvider AuthProvider
+@inject UserManager<ApplicationUser> UserManager
 
 @if (forums == null)
 {
@@ -29,9 +33,10 @@ else
                         <th>Name</th>
                         <th style="width: 15%;">Topics</th>
                         <th style="width: 15%;">Entries</th>
+                        <th style="width: 25%;">Letzter Beitrag</th>
                         @if (isAdmin)
                         {
-                            <th style="width: 50px;"/>
+                            <th style="width: 50px;" />
                         }
                     </tr>
                 </thead>
@@ -40,19 +45,34 @@ else
                     {
                         <tr>
                             <td>
-                                <a href="@($"/forum/{forum.Id}")" class="fw-bold text-decoration-none">
-                                    @forum.Name
+                                <a href="@($"/forum/{forum.Forum.Id}")" class="fw-bold text-decoration-none">
+                                    @forum.Forum.Name
                                 </a><br />
-                                <small class="text-muted">@forum.Description</small>
+                                <small class="text-muted">@forum.Forum.Description</small>
                             </td>
-                            <td>@forum.NumberOfTopics</td>
-                            <td>@forum.NumberOfEntries</td>
+                            <td>@forum.Forum.NumberOfTopics</td>
+                            <td>@forum.Forum.NumberOfEntries</td>
+                            <td>
+                                @if (forum.LastEntryDetails != null)
+                                {
+                                    <div>
+                                        <strong>@forum.LastEntryDetails.TopicTitle</strong><br />
+                                        <small class="text-muted">
+                                            @forum.LastEntryDetails.CreatedAt.ToString("g") by @forum.LastEntryDetails.Author
+                                        </small>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <small class="text-muted">No entries yet</small>
+                                }
+                            </td>
                             @if (isAdmin)
                             {
                                 <td>
                                     <Delete Title="Forum löschen"
                                             Message="Möchten Sie dieses Forum wirklich löschen?"
-                                            OnDeleteConfirmed="() => DeleteForum(forum)" />
+                                            OnDeleteConfirmed="() => DeleteForum(forum.Forum)" />
                                 </td>
                             }
                         </tr>
@@ -95,7 +115,7 @@ else
 @code {
     [Parameter] public EventCallback<ForumGroup> OnGroupDeleted { get; set; }
 
-    private List<Forum>? forums;
+    private List<ForumDisplay>? forums;
 
     private EditContext? editContext;
     [SupplyParameterFromForm]
@@ -128,7 +148,14 @@ else
 
     private async Task LoadData()
     {
-        forums = await ForumService.GetForumsByGroupIdAsync(ForumGroup?.Id ?? default).ConfigureAwait(false);
+        forums = (await ForumService.GetForumsByGroupIdAsync(ForumGroup?.Id ?? default).ConfigureAwait(false))
+            .Select(x => new ForumDisplay
+                {
+                    Forum = x,
+                    LastEntryDetails = x.LastEntry != null
+                                ? CreateLastEntryDetails(x).Result
+                                : null
+                }).ToList();
 
         await InvokeAsync(() =>
         {
@@ -137,6 +164,20 @@ else
             showNewForumForm = false;
             StateHasChanged();
         });
+    }
+
+    private async Task<LastEntryDetails> CreateLastEntryDetails(Forum forum)
+    {
+        var lastEntry = await ForumService.GetEntryById((ObjectId)forum.LastEntry!);
+        var topic = await ForumService.GetTopicByIdAsync(lastEntry.TopicId);
+        var user = await UserManager.FindByIdAsync(lastEntry.UserId.ToString());
+
+        return new LastEntryDetails
+            {
+                TopicTitle = topic.Title,
+                CreatedAt = lastEntry.CreatedAt,
+                Author = user?.UserName ?? string.Empty
+            };
     }
 
     private async Task AddForum()
@@ -176,7 +217,7 @@ else
             messageStore?.Add(() => Model.Name, "Forum name cannot be empty.");
         }
 
-        var exists = forums!.Any(g => string.Equals(g.Name, Model!.Name, StringComparison.OrdinalIgnoreCase));
+        var exists = forums!.Any(g => string.Equals(g.Forum.Name, Model!.Name, StringComparison.OrdinalIgnoreCase));
 
         if (exists)
         {
@@ -187,6 +228,19 @@ else
         {
             messageStore?.Add(() => Model.Description, "Forum description cannot be empty.");
         }
+    }
+
+    public class ForumDisplay
+    {
+        public Forum Forum { get; set; } = new();
+        public LastEntryDetails? LastEntryDetails { get; set; }
+    }
+
+    public class LastEntryDetails
+    {
+        public string TopicTitle { get; set; } = string.Empty;
+        public DateTime CreatedAt { get; set; }
+        public string Author { get; set; } = string.Empty;
     }
 
     public class NewForum

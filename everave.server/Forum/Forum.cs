@@ -10,5 +10,6 @@ namespace everave.server.Forum
         public string Description { get; set; } = default!;
         public int NumberOfTopics { get; set; }
         public int NumberOfEntries { get; set; }
+        public ObjectId? LastEntry { get; set; }
     }
 }

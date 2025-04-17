@@ -10,5 +10,6 @@ namespace everave.server.Forum
         public ObjectId CreatedByUserId { get; set; } = default!;
         public DateTime CreatedAt { get; set; }
         public int NumberOfEntries { get; set; }
+        public ObjectId? LastEntry { get; set; }
     }
 }

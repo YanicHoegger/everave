@@ -28,7 +28,7 @@ public class MongoAuthenticationStateProvider : AuthenticationStateProvider
             {
                 var claims = new List<Claim>
                 {
-                    new(ClaimTypes.Name, appUser.UserName),
+                    new(ClaimTypes.Name, appUser.UserName!),
                     new(ClaimTypes.Email, appUser.Email ?? string.Empty),
                     new(ClaimTypes.NameIdentifier, appUser.Id.ToString())
                 };
@@ -42,10 +42,5 @@ public class MongoAuthenticationStateProvider : AuthenticationStateProvider
         }
 
         return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
-    }
-
-    public void NotifyAuthenticationStateChanged(Task<AuthenticationState> authenticationStateTask)
-    {
-        base.NotifyAuthenticationStateChanged(authenticationStateTask);
     }
 }

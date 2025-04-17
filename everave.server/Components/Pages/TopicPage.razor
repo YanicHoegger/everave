@@ -48,7 +48,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        entries = await ForumService.GetEntriesByThreadIdAsync(new ObjectId(id));
+        entries = await ForumService.GetEntriesByTopicIdAsync(new ObjectId(id));
     }
 
     private async Task SaveEntry()

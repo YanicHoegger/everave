@@ -54,13 +54,19 @@ namespace everave.server.Forum
         public async Task<List<Topic>> GetTopicsByForumIdAsync(ObjectId forumId) =>
             await _topics.Find(t => t.ForumId == forumId).ToListAsync();
 
-        public async Task<List<Entry>> GetEntriesByThreadIdAsync(ObjectId threadId, int page = 1) =>
+        public Task<Topic> GetTopicByIdAsync(ObjectId topicId) => 
+            _topics.Find(t => t.Id == topicId).FirstAsync();
+
+        public async Task<List<Entry>> GetEntriesByTopicIdAsync(ObjectId topicId, int page = 1) =>
             await _entries
-            .Find(e => e.TopicId == threadId)
+            .Find(e => e.TopicId == topicId)
             .Skip((page - 1) * PageSize)
             .Limit(PageSize)
             .SortBy(e => e.CreatedAt)
             .ToListAsync();
+
+        public Task<Entry> GetEntryById(ObjectId entryId) =>
+            _entries.Find(e => e.Id == entryId).FirstAsync();
 
         public Task AddForumGroupAsync(ForumGroup group) =>
             _forumGroups.InsertOneAsync(group);
@@ -100,7 +106,9 @@ namespace everave.server.Forum
         {
             await _entries.InsertOneAsync(entry);
 
-            var topicUpdate = Builders<Topic>.Update.Inc(t => t.NumberOfEntries, 1);
+            var topicUpdate = Builders<Topic>.Update
+                .Inc(t => t.NumberOfEntries, 1)
+                .Set(t => t.LastEntry, entry.Id);
             await _topics.UpdateOneAsync(
                 t => t.Id == entry.TopicId,
                 topicUpdate
@@ -109,7 +117,9 @@ namespace everave.server.Forum
             var topic = await _topics.Find(t => t.Id == entry.TopicId).FirstOrDefaultAsync();
             if (topic != null)
             {
-                var forumUpdate = Builders<Forum>.Update.Inc(f => f.NumberOfEntries, 1);
+                var forumUpdate = Builders<Forum>.Update
+                    .Inc(f => f.NumberOfEntries, 1)
+                    .Set(f => f.LastEntry, entry.Id);
                 await _forums.UpdateOneAsync(
                     f => f.Id == topic.ForumId,
                     forumUpdate
@@ -130,11 +140,44 @@ namespace everave.server.Forum
             var topic = await _topics.Find(t => t.Id == entry.TopicId).FirstOrDefaultAsync();
             if (topic != null)
             {
-                var forumUpdate = Builders<Forum>.Update.Inc(f => f.NumberOfEntries, -1);
+                if (topic.LastEntry == entry.Id)
+                {
+                    var oldestEntry = await _entries
+                        .Find(e => e.TopicId == entry.TopicId)
+                        .SortBy(e => e.CreatedAt)
+                        .FirstOrDefaultAsync();
+
+                    var lastEntryUpdate = Builders<Topic>.Update.Set(t => t.LastEntry, oldestEntry?.Id);
+                    await _topics.UpdateOneAsync(
+                        t => t.Id == entry.TopicId,
+                        lastEntryUpdate
+                    );
+                }
+
+                var forumUpdate = Builders<Forum>.Update
+                    .Inc(f => f.NumberOfEntries, -1);
                 await _forums.UpdateOneAsync(
                     f => f.Id == topic.ForumId,
                     forumUpdate
                 );
+
+                var forum = await _forums.Find(f => f.Id == topic.ForumId).FirstOrDefaultAsync();
+                if (forum != null)
+                {
+                    if (forum.LastEntry == entry.Id)
+                    {
+                        var oldestEntryInForum = await _entries
+                            .Find(e => e.TopicId == topic.Id)
+                            .SortBy(e => e.CreatedAt)
+                            .FirstOrDefaultAsync();
+
+                        var forumLastEntryUpdate = Builders<Forum>.Update.Set(f => f.LastEntry, oldestEntryInForum?.Id);
+                        await _forums.UpdateOneAsync(
+                            f => f.Id == topic.ForumId,
+                            forumLastEntryUpdate
+                        );
+                    }
+                }
             }
         }
     }
