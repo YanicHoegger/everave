@@ -54,7 +54,7 @@ else
         editContext.OnValidationRequested += HandleValidationRequested;
         messageStore = new(editContext);
 
-        return LoadData();
+        return forumsByGroup == null ? LoadData() : Task.CompletedTask;
     }
 
     private async Task LoadData()

@@ -168,9 +168,9 @@ else
 
     private async Task<LastEntryDetails> CreateLastEntryDetails(Forum forum)
     {
-        var lastEntry = await ForumService.GetEntryById((ObjectId)forum.LastEntry!);
-        var topic = await ForumService.GetTopicByIdAsync(lastEntry.TopicId);
-        var user = await UserManager.FindByIdAsync(lastEntry.UserId.ToString());
+        var lastEntry = await ForumService.GetEntryById((ObjectId)forum.LastEntry!).ConfigureAwait(false);
+        var topic = await ForumService.GetTopicByIdAsync(lastEntry.TopicId).ConfigureAwait(false);
+        var user = await UserManager.FindByIdAsync(lastEntry.UserId.ToString()).ConfigureAwait(false);
 
         return new LastEntryDetails
             {

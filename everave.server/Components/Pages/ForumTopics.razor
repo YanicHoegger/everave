@@ -83,7 +83,7 @@ else
     {
         forum = await ForumService.GetForumAsync(ForumId);
         topics = (await ForumService.GetTopicsByForumIdAsync(ForumId))
-            .Select(x => new TopicDisplay()
+            .Select(x => new TopicDisplay
                 {
                     Topic = x,
                     LastEntryDetails = x.LastEntry != null ? CreateLastEntryDetails(x).Result : null
@@ -94,8 +94,8 @@ else
 
     private async Task<LastEntryDetails> CreateLastEntryDetails(Topic topic)
     {
-        var lastEntry = await ForumService.GetEntryById((ObjectId)topic.LastEntry!);
-        var user = await UserManager.FindByIdAsync(lastEntry.UserId.ToString());
+        var lastEntry = await ForumService.GetEntryById((ObjectId)topic.LastEntry!).ConfigureAwait(false);
+        var user = await UserManager.FindByIdAsync(lastEntry.UserId.ToString()).ConfigureAwait(false);
 
         return new LastEntryDetails
             {
