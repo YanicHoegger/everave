@@ -29,7 +29,8 @@ public class MongoAuthenticationStateProvider : AuthenticationStateProvider
                 var claims = new List<Claim>
                 {
                     new(ClaimTypes.Name, appUser.UserName),
-                    new(ClaimTypes.Email, appUser.Email ?? string.Empty)
+                    new(ClaimTypes.Email, appUser.Email ?? string.Empty),
+                    new(ClaimTypes.NameIdentifier, appUser.Id.ToString())
                 };
 
                 var roles = await _userManager.GetRolesAsync(appUser);

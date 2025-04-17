@@ -1,6 +1,8 @@
 ﻿@page "/forums"
 @rendermode InteractiveServer
 @using everave.server.Forum
+@using everave.server.UserManagement
+@using Microsoft.AspNetCore.Components.Authorization
 @inject IForumService ForumService
 
 @if (forumsByGroup == null)
@@ -11,28 +13,30 @@ else
 {
     foreach (var group in forumsByGroup)
     {
-        <ForumGroupComponent ForumGroup="group"/>
+        <ForumGroupComponent ForumGroup="group" OnGroupDeleted="HandleGroupDeleted" />
     }
 
-    <EditForm EditContext="editContext" OnValidSubmit="AddForumGroup">
-        <DataAnnotationsValidator />
+    <AuthorizeView Roles="@ApplicationUser.AdminRole">
+        <EditForm EditContext="editContext" OnValidSubmit="AddForumGroup" Context="overview_edit_form">
+            <DataAnnotationsValidator />
 
-        <fieldset class="border rounded p-3">
-            <legend class="float-none fs-6 text-secondary mb-0 px-2">Neue Forumgruppe erstellen</legend>
+            <fieldset class="border rounded p-3">
+                <legend class="float-none fs-6 text-secondary mb-0 px-2">Neue Forumgruppe erstellen</legend>
 
-            <div class="row align-items-end g-2">
-                <div class="col">
-                    <label for="forumGroupName" class="form-label">Name</label>
-                    <InputText id="forumGroupName" @bind-Value="Model!.Description" class="form-control" />
-                    <ValidationMessage For="() => Model!.Description" />
+                <div class="row align-items-end g-2">
+                    <div class="col">
+                        <label for="forumGroupName" class="form-label">Name</label>
+                        <InputText id="forumGroupName" @bind-Value="Model!.Description" class="form-control" />
+                        <ValidationMessage For="() => Model!.Description" />
+                    </div>
+
+                    <div class="col-auto">
+                        <button type="submit" class="btn btn-success">Hinzufügen</button>
+                    </div>
                 </div>
-
-                <div class="col-auto">
-                    <button type="submit" class="btn btn-success">Hinzufügen</button>
-                </div>
-            </div>
-        </fieldset>
-    </EditForm>
+            </fieldset>
+        </EditForm>
+    </AuthorizeView>
 }
 
 @code {
@@ -63,7 +67,12 @@ else
         await ForumService.AddForumGroupAsync(new ForumGroup() { Description = Model!.Description }).ConfigureAwait(false);
         await LoadData().ConfigureAwait(false);
 
-        StateHasChanged();
+        await InvokeAsync(() =>
+        {
+            Model = new NewGroup();
+            editContext = new EditContext(Model);
+            StateHasChanged();
+        });
     }
 
     private void HandleValidationRequested(object? sender,
@@ -83,6 +92,14 @@ else
         {
             messageStore?.Add(() => Model.Description, "A group with that name already exists.");
         }
+    }
+
+    private Task HandleGroupDeleted(ForumGroup deletedGroup)
+    {
+        forumsByGroup?.Remove(deletedGroup);
+        StateHasChanged();
+
+        return Task.CompletedTask;
     }
 
     public class NewGroup

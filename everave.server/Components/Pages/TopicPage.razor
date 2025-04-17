@@ -1,9 +1,11 @@
 ﻿@page "/topic/{id}"
 @rendermode InteractiveServer
 @using everave.server.Forum
+@using everave.server.UserManagement
 @using MongoDB.Bson
 @using Microsoft.AspNetCore.Components.Authorization
 @inject IForumService ForumService
+@inject AuthenticationStateProvider AuthProvider
 
 @if (entries == null)
 {
@@ -57,7 +59,8 @@ else
                 {
                     HtmlContent = newContent,
                     CreatedAt = DateTime.UtcNow,
-                    TopicId = new ObjectId(id)
+                    TopicId = new ObjectId(id),
+                    UserId = (ObjectId)(await AuthProvider.GetUserId())!
                 };
             await ForumService.AddEntryAsync(entry);
 

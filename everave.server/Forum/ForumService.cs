@@ -65,14 +65,31 @@ namespace everave.server.Forum
         public Task AddForumGroupAsync(ForumGroup group) =>
             _forumGroups.InsertOneAsync(group);
 
+        public Task DeleteForumGroupAsync(ForumGroup group) => 
+            _forumGroups.DeleteOneAsync(g => g.Id == group.Id);
+
         public Task AddForumAsync(Forum forum) =>
             _forums.InsertOneAsync(forum);
+
+        public Task DeleteForumAsync(Forum forum) => 
+            _forums.DeleteOneAsync(f => f.Id == forum.Id);
 
         public async Task AddTopicAsync(Topic topic)
         {
             await _topics.InsertOneAsync(topic);
 
             var update = Builders<Forum>.Update.Inc(f => f.NumberOfTopics, 1);
+            await _forums.UpdateOneAsync(
+                f => f.Id == topic.ForumId,
+                update
+            );
+        }
+
+        public async Task DeleteTopicAsync(Topic topic)
+        {
+            await _topics.DeleteOneAsync(t => t.Id == topic.Id);
+
+            var update = Builders<Forum>.Update.Inc(f => f.NumberOfTopics, -1);
             await _forums.UpdateOneAsync(
                 f => f.Id == topic.ForumId,
                 update
@@ -93,6 +110,27 @@ namespace everave.server.Forum
             if (topic != null)
             {
                 var forumUpdate = Builders<Forum>.Update.Inc(f => f.NumberOfEntries, 1);
+                await _forums.UpdateOneAsync(
+                    f => f.Id == topic.ForumId,
+                    forumUpdate
+                );
+            }
+        }
+
+        public async Task DeleteEntryAsync(Entry entry)
+        {
+            await _entries.DeleteOneAsync(e => e.Id == entry.Id);
+
+            var topicUpdate = Builders<Topic>.Update.Inc(t => t.NumberOfEntries, -1);
+            await _topics.UpdateOneAsync(
+                t => t.Id == entry.TopicId,
+                topicUpdate
+            );
+
+            var topic = await _topics.Find(t => t.Id == entry.TopicId).FirstOrDefaultAsync();
+            if (topic != null)
+            {
+                var forumUpdate = Builders<Forum>.Update.Inc(f => f.NumberOfEntries, -1);
                 await _forums.UpdateOneAsync(
                     f => f.Id == topic.ForumId,
                     forumUpdate

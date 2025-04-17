@@ -1,15 +1,24 @@
 ﻿@using everave.server.Forum
+@using Microsoft.AspNetCore.Components.Authorization
 @inject IForumService ForumService
+@inject AuthenticationStateProvider AuthProvider
 
-@if(forums == null)
+@if (forums == null)
 {
     <p>Loading...</p>
 }
 else
 {
     <div class="card mb-4 shadow-sm">
-        <div class="card-header bg-primary text-white">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
             <h5 class="mb-0">@ForumGroup?.Description</h5>
+            @if (isAdmin)
+            {
+                <div>
+                    <button class="btn btn-sm btn-light me-2" @onclick="ToggleNewForumForm">+</button>
+                    <button class="btn btn-sm btn-danger" @onclick="ShowDeleteDialog">-</button>
+                </div>
+            }
         </div>
         <div class="card-body p-0">
             <table class="table table-hover mb-0">
@@ -38,35 +47,61 @@ else
             </table>
         </div>
 
-        <EditForm EditContext="editContext" OnValidSubmit="AddForum">
-            <DataAnnotationsValidator />
+        @if (showNewForumForm)
+        {
+            <EditForm EditContext="editContext" OnValidSubmit="AddForum">
+                <DataAnnotationsValidator />
 
-            <fieldset class="border rounded p-3">
-                <legend class="float-none fs-6 text-secondary mb-0 px-2">Neues Forum erstellen</legend>
+                <fieldset class="border rounded p-3">
+                    <legend class="float-none fs-6 text-secondary mb-0 px-2">Neues Forum erstellen</legend>
 
-                <div class="row align-items-end g-2">
-                    <div class="col">
-                        <label for="forumName" class="form-label">Name</label>
-                        <InputText id="forumName" @bind-Value="Model!.Name" class="form-control" />
-                        <ValidationMessage For="() => Model!.Name" />
+                    <div class="row align-items-end g-2">
+                        <div class="col">
+                            <label for="forumName" class="form-label">Name</label>
+                            <InputText id="forumName" @bind-Value="Model!.Name" class="form-control" />
+                            <ValidationMessage For="() => Model!.Name" />
+                        </div>
+
+                        <div class="col">
+                            <label for="forumDescription" class="form-label">Beschreibung</label>
+                            <InputText id="forumDescription" @bind-Value="Model!.Description" class="form-control" />
+                            <ValidationMessage For="() => Model!.Description" />
+                        </div>
+
+                        <div class="col-auto">
+                            <button type="submit" class="btn btn-success">Hinzufügen</button>
+                        </div>
                     </div>
+                </fieldset>
+            </EditForm>
+        }
 
-                    <div class="col">
-                        <label for="forumDescription" class="form-label">Beschreibung</label>
-                        <InputText id="forumDescription" @bind-Value="Model!.Description" class="form-control" />
-                        <ValidationMessage For="() => Model!.Description" />
-                    </div>
-
-                    <div class="col-auto">
-                        <button type="submit" class="btn btn-success">Hinzufügen</button>
+        @if (showDeleteDialog)
+        {
+            <div class="modal show d-block" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Gruppe löschen</h5>
+                            <button type="button" class="btn-close" @onclick="CloseDeleteDialog"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p>Möchten Sie die Gruppe wirklich löschen?</p>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" @onclick="CloseDeleteDialog">Abbrechen</button>
+                            <button type="button" class="btn btn-danger" @onclick="DeleteGroup">Löschen</button>
+                        </div>
                     </div>
                 </div>
-            </fieldset>
-        </EditForm>
+            </div>
+        }
     </div>
 }
 
 @code {
+    [Parameter] public EventCallback<ForumGroup> OnGroupDeleted { get; set; }
+
     private List<Forum>? forums;
 
     private EditContext? editContext;
@@ -76,14 +111,27 @@ else
 
     [Parameter] public ForumGroup? ForumGroup { get; set; }
 
-    protected override Task OnInitializedAsync()
+    private bool isAdmin;
+    private bool showNewForumForm = false;
+    private bool showDeleteDialog = false;
+
+    protected override async Task OnInitializedAsync()
     {
         Model ??= new();
         editContext = new(Model);
         editContext.OnValidationRequested += HandleValidationRequested;
         messageStore = new(editContext);
 
-        return LoadData();
+        await CheckIfAdmin();
+        await LoadData();
+    }
+
+    private async Task CheckIfAdmin()
+    {
+        var authState = await AuthProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        isAdmin = user.Identity?.IsAuthenticated == true && user.IsInRole("Admin");
     }
 
     private async Task LoadData()
@@ -107,8 +155,36 @@ else
         {
             Model = new NewForum();
             editContext = new EditContext(Model);
+            showNewForumForm = false;
             StateHasChanged();
         });
+    }
+
+    private void ToggleNewForumForm()
+    {
+        showNewForumForm = !showNewForumForm;
+    }
+
+    private void ShowDeleteDialog()
+    {
+        showDeleteDialog = true;
+    }
+
+    private void CloseDeleteDialog()
+    {
+        showDeleteDialog = false;
+    }
+
+    private async Task DeleteGroup()
+    {
+        if (ForumGroup != null)
+        {
+            await ForumService.DeleteForumGroupAsync(ForumGroup).ConfigureAwait(false);
+            showDeleteDialog = false;
+
+            // Notify the parent component
+            await OnGroupDeleted.InvokeAsync(ForumGroup);
+        }
     }
 
     private void HandleValidationRequested(object? sender,

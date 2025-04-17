@@ -1,0 +1,130 @@
+﻿@page "/forum/{forumId}/add-topic"
+@rendermode InteractiveServer
+@using everave.server.Forum
+@using everave.server.UserManagement
+@using MongoDB.Bson
+@using Microsoft.AspNetCore.Components.Authorization
+@inject IForumService ForumService
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<h3>Neues Thema erstellen</h3>
+
+@if (isLoading)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <EditForm EditContext="editContext" OnValidSubmit="Add">
+        <DataAnnotationsValidator />
+
+        <fieldset class="border rounded p-3">
+            <legend class="float-none fs-6 text-secondary mb-0 px-2">Neues Thema</legend>
+
+            <div class="mb-3">
+                <label for="topicTitle" class="form-label">Name</label>
+                <InputText id="topicTitle" @bind-Value="Model!.Title" class="form-control" />
+                <ValidationMessage For="() => Model!.Title" />
+            </div>
+
+            <div>
+                <RichTextEditor @bind-Value="Model!.FirstEntry" />
+                <ValidationMessage For="() => Model!.FirstEntry" />
+            </div>
+
+            <button type="submit" class="btn btn-success">Hinzufügen</button>
+            <button type="button" class="btn btn-secondary ms-2" @onclick="Cancel">Abbrechen</button>
+        </fieldset>
+    </EditForm>
+}
+
+@code {
+    [Parameter]
+    public string forumId { get; set; } = default!;
+
+    private NewTopic? Model { get; set; }
+    private EditContext? editContext;
+    private ValidationMessageStore? messageStore;
+    private ObjectId? MongoUserId;
+    private bool isLoading = true;
+
+    private List<Topic>? topics;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Model = new NewTopic();
+        editContext = new EditContext(Model);
+        editContext.OnValidationRequested += HandleValidationRequested;
+        messageStore = new ValidationMessageStore(editContext);
+
+        topics = await ForumService.GetTopicsByForumIdAsync(new ObjectId(forumId));
+
+        MongoUserId = await AuthenticationStateProvider.GetUserId();
+
+        isLoading = false;
+    }
+
+    private void HandleValidationRequested(object? sender, ValidationRequestedEventArgs args)
+    {
+        messageStore?.Clear();
+
+        if (string.IsNullOrWhiteSpace(Model!.Title))
+        {
+            messageStore?.Add(() => Model.Title, "Thema-Name darf nicht leer sein.");
+        }
+
+        var exists = topics!.Any(g => string.Equals(g.Title, Model.Title, StringComparison.OrdinalIgnoreCase));
+
+        if (exists)
+        {
+            messageStore?.Add(() => Model.Title, "A group with that name already exists.");
+        }
+
+        if (string.IsNullOrWhiteSpace(Model!.FirstEntry))
+        {
+            messageStore?.Add(() => Model.Title, "Der Beitrag darf nicht leer sein.");
+        }
+    }
+
+    private async Task Add()
+    {
+        if (editContext!.Validate())
+        {
+            var topicId = ObjectId.GenerateNewId();
+
+            var topic = new Topic
+                {
+                    Title = Model!.Title,
+                    CreatedAt = DateTime.Now,
+                    ForumId = new ObjectId(forumId),
+                    CreatedByUserId = (ObjectId)MongoUserId!,
+                    Id = topicId
+                };
+
+            await ForumService.AddTopicAsync(topic);
+
+            var entry = new Entry
+                {
+                    HtmlContent = Model.FirstEntry,
+                    CreatedAt = DateTime.UtcNow,
+                    TopicId = topicId,
+                    UserId = (ObjectId)MongoUserId!
+                };
+            await ForumService.AddEntryAsync(entry);
+
+            NavigationManager.NavigateTo($"/topic/{topicId}");
+        }
+    }
+
+    private void Cancel()
+    {
+        NavigationManager.NavigateTo($"/forum/{forumId}");
+    }
+
+    public class NewTopic
+    {
+        public string Title { get; set; } = string.Empty;
+        public string FirstEntry { get; set; } = string.Empty;
+    }
+}

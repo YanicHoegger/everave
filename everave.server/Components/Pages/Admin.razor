@@ -51,12 +51,10 @@ else
         var authState = await AuthProvider.GetAuthenticationStateAsync();
         var user = authState.User;
 
-        // Check if the user is an admin
         isAdmin = user.Identity?.IsAuthenticated == true && user.IsInRole(ApplicationUser.AdminRole);
 
         if (isAdmin)
         {
-            // Load all users
             users = UserManager.Users.ToList();
         }
     }

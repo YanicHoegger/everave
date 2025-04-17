@@ -1,7 +1,10 @@
 ﻿@page "/forum/{id}"
+@rendermode InteractiveServer
 @using everave.server.Forum
 @using MongoDB.Bson
+@using Microsoft.AspNetCore.Components.Authorization
 @inject IForumService ForumService
+@inject NavigationManager NavigationManager
 
 <h3>@forum?.Name</h3>
 
@@ -12,8 +15,11 @@
 else
 {
     <div class="card mb-4 shadow-sm">
-        <div class="card-header bg-primary text-white">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
             <h5 class="mb-0">Thema</h5>
+            <AuthorizeView>
+                <button class="btn btn-sm btn-light" @onclick="NavigateToAddTopic">Neues Thema</button>
+            </AuthorizeView>
         </div>
         <div class="card-body p-0">
             <table class="table table-hover mb-0">
@@ -39,26 +45,6 @@ else
                 </tbody>
             </table>
         </div>
-
-        <EditForm EditContext="editContext" OnValidSubmit="AddTopic" formname="add-topic-form">
-            <DataAnnotationsValidator />
-
-            <fieldset class="border rounded p-3">
-                <legend class="float-none fs-6 text-secondary mb-0 px-2">Neues Thema erstellen</legend>
-
-                <div class="row align-items-end g-2">
-                    <div class="col">
-                        <label for="forumGroupName" class="form-label">Name</label>
-                        <InputText id="forumGroupName" @bind-Value="Model!.Title" class="form-control" />
-                        <ValidationMessage For="() => Model!.Title" />
-                    </div>
-
-                    <div class="col-auto">
-                        <button type="submit" class="btn btn-success">Hinzufügen</button>
-                    </div>
-                </div>
-            </fieldset>
-        </EditForm>
     </div>
 }
 
@@ -69,18 +55,8 @@ else
     private Forum? forum;
     private List<Topic>? topics;
 
-    private EditContext? editContext;
-    [SupplyParameterFromForm]
-    private NewTopic? Model { get; set; }
-    private ValidationMessageStore? messageStore;
-
     protected override async Task OnInitializedAsync()
     {
-        Model ??= new();
-        editContext = new(Model);
-        editContext.OnValidationRequested += HandleValidationRequested;
-        messageStore = new(editContext);
-
         var forumId = ForumId;
         forum = await ForumService.GetForumAsync(forumId);
         topics = await ForumService.GetTopicsByForumIdAsync(forumId);
@@ -88,47 +64,8 @@ else
 
     private ObjectId ForumId => new(id);
 
-    private void HandleValidationRequested(object? sender,
-        ValidationRequestedEventArgs args)
+    private void NavigateToAddTopic()
     {
-        messageStore?.Clear();
-
-        var title = Model!.Title;
-        if (string.IsNullOrWhiteSpace(title))
-        {
-            messageStore?.Add(() => Model.Title, "Group name cannot be empty.");
-        }
-
-        var exists = topics!.Any(g => string.Equals(g.Title, title, StringComparison.OrdinalIgnoreCase));
-
-        if (exists)
-        {
-            messageStore?.Add(() => Model.Title, "A group with that name already exists.");
-        }
-    }
-
-    private async Task AddTopic()
-    {
-        var topic = new Topic()
-            {
-                Title = Model!.Title,
-                CreatedAt = DateTime.Now,
-                ForumId = ForumId
-            //TODO: add user
-            };
-        await ForumService.AddTopicAsync(topic).ConfigureAwait(false);
-        topics = await ForumService.GetTopicsByForumIdAsync(ForumId);
-
-        await InvokeAsync(() =>
-        {
-            Model = new NewTopic();
-            editContext = new EditContext(Model);
-            StateHasChanged();
-        });
-    }
-
-    public class NewTopic
-    {
-        public string Title { get; set; } = string.Empty;
+        NavigationManager.NavigateTo($"/forum/{id}/add-topic");
     }
 }

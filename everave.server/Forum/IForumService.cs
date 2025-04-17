@@ -11,8 +11,12 @@ namespace everave.server.Forum
         Task<List<Entry>> GetEntriesByThreadIdAsync(ObjectId threadId, int page = 1);
 
         Task AddForumGroupAsync(ForumGroup group);
+        Task DeleteForumGroupAsync(ForumGroup group);
         Task AddForumAsync(Forum forum);
+        Task DeleteForumAsync(Forum forum);
         Task AddTopicAsync(Topic topic);
+        Task DeleteTopicAsync(Topic topic);
         Task AddEntryAsync(Entry entry);
+        Task DeleteEntryAsync(Entry entry);
     }
 }
