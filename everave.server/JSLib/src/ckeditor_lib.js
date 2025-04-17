@@ -29,8 +29,6 @@
 	SimpleUploadAdapter
 } from 'ckeditor5';
 
-import 'ckeditor5/ckeditor5.css';
-
 export function initializeCKEditor(editorId, dotNetHelper) {
     ClassicEditor
         .create(document.querySelector(`#${editorId}`), {

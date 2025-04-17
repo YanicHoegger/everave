@@ -1,14 +1,15 @@
-﻿@inject IJSRuntime JS
+﻿@implements IDisposable
+@inject IJSRuntime JS
 
 <div>
     <div id="@EditorId"></div>
 </div>
 
 @code {
-    [Parameter] public string EditorId { get; set; } = $"editor_{Guid.NewGuid()}";
     [Parameter] public string? Value { get; set; }
     [Parameter] public EventCallback<string> ValueChanged { get; set; }
 
+    private string EditorId { get; } = $"editor_{Guid.NewGuid()}";
     private DotNetObjectReference<RichTextEditor>? _dotNetRef;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -25,5 +26,11 @@
     {
         Value = data;
         await ValueChanged.InvokeAsync(data);
+    }
+
+    public void Dispose()
+    {
+        _dotNetRef?.Dispose();
+        _dotNetRef = null;
     }
 }
