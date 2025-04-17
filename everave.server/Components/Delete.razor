@@ -1,0 +1,50 @@
+﻿<div>
+    <button class="btn btn-sm btn-danger" @onclick="ShowDialog">
+        <i class="bi bi-trash"></i>
+    </button>
+
+    @if (showDialog)
+    {
+        <div class="modal show d-block" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">@Title</h5>
+                        <button type="button" class="btn-close" @onclick="CloseDialog"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>@Message</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @onclick="CloseDialog">Abbrechen</button>
+                        <button type="button" class="btn btn-danger" @onclick="ConfirmDelete">Löschen</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public string Title { get; set; } = "Bestätigung erforderlich";
+    [Parameter] public string Message { get; set; } = "Möchten Sie diesen Eintrag wirklich löschen?";
+    [Parameter] public EventCallback OnDeleteConfirmed { get; set; }
+
+    private bool showDialog = false;
+
+    private void ShowDialog()
+    {
+        showDialog = true;
+    }
+
+    private void CloseDialog()
+    {
+        showDialog = false;
+    }
+
+    private async Task ConfirmDelete()
+    {
+        showDialog = false;
+        await OnDeleteConfirmed.InvokeAsync();
+    }
+}

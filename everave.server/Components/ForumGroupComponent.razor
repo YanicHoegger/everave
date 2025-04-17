@@ -14,35 +14,49 @@ else
             <h5 class="mb-0">@ForumGroup?.Description</h5>
             @if (isAdmin)
             {
-                <div>
+                <div class="d-flex align-items-center">
                     <button class="btn btn-sm btn-light me-2" @onclick="ToggleNewForumForm">+</button>
-                    <button class="btn btn-sm btn-danger" @onclick="ShowDeleteDialog">-</button>
+                    <Delete Title="Gruppe löschen"
+                            Message="Möchten Sie die Gruppe wirklich löschen?"
+                            OnDeleteConfirmed="DeleteGroup" />
                 </div>
             }
         </div>
         <div class="card-body p-0">
             <table class="table table-hover mb-0">
                 <thead class="table-light">
-                <tr>
-                    <th>Name</th>
-                    <th style="width: 15%;">Topics</th>
-                    <th style="width: 15%;">Entries</th>
-                </tr>
+                    <tr>
+                        <th>Name</th>
+                        <th style="width: 15%;">Topics</th>
+                        <th style="width: 15%;">Entries</th>
+                        @if (isAdmin)
+                        {
+                            <th style="width: 50px;"/>
+                        }
+                    </tr>
                 </thead>
                 <tbody>
-                @foreach (var forum in forums)
-                {
-                    <tr>
-                        <td>
-                            <a href="@($"/forum/{forum.Id}")" class="fw-bold text-decoration-none">
-                                @forum.Name
-                            </a><br />
-                            <small class="text-muted">@forum.Description</small>
-                        </td>
-                        <td>@forum.NumberOfTopics</td>
-                        <td>@forum.NumberOfEntries</td>
-                    </tr>
-                }
+                    @foreach (var forum in forums)
+                    {
+                        <tr>
+                            <td>
+                                <a href="@($"/forum/{forum.Id}")" class="fw-bold text-decoration-none">
+                                    @forum.Name
+                                </a><br />
+                                <small class="text-muted">@forum.Description</small>
+                            </td>
+                            <td>@forum.NumberOfTopics</td>
+                            <td>@forum.NumberOfEntries</td>
+                            @if (isAdmin)
+                            {
+                                <td>
+                                    <Delete Title="Forum löschen"
+                                            Message="Möchten Sie dieses Forum wirklich löschen?"
+                                            OnDeleteConfirmed="() => DeleteForum(forum)" />
+                                </td>
+                            }
+                        </tr>
+                    }
                 </tbody>
             </table>
         </div>
@@ -75,27 +89,6 @@ else
                 </fieldset>
             </EditForm>
         }
-
-        @if (showDeleteDialog)
-        {
-            <div class="modal show d-block" tabindex="-1">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title">Gruppe löschen</h5>
-                            <button type="button" class="btn-close" @onclick="CloseDeleteDialog"></button>
-                        </div>
-                        <div class="modal-body">
-                            <p>Möchten Sie die Gruppe wirklich löschen?</p>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" @onclick="CloseDeleteDialog">Abbrechen</button>
-                            <button type="button" class="btn btn-danger" @onclick="DeleteGroup">Löschen</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        }
     </div>
 }
 
@@ -113,7 +106,6 @@ else
 
     private bool isAdmin;
     private bool showNewForumForm = false;
-    private bool showDeleteDialog = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -137,19 +129,6 @@ else
     private async Task LoadData()
     {
         forums = await ForumService.GetForumsByGroupIdAsync(ForumGroup?.Id ?? default).ConfigureAwait(false);
-    }
-
-    private async Task AddForum()
-    {
-        var forum = new Forum
-        {
-            Description = Model!.Description,
-            Name = Model!.Name,
-            GroupId = ForumGroup!.Id
-        };
-        await ForumService.AddForumAsync(forum).ConfigureAwait(false);
-
-        await LoadData();
 
         await InvokeAsync(() =>
         {
@@ -160,19 +139,22 @@ else
         });
     }
 
+    private async Task AddForum()
+    {
+        var forum = new Forum
+            {
+                Description = Model!.Description,
+                Name = Model!.Name,
+                GroupId = ForumGroup!.Id
+            };
+        await ForumService.AddForumAsync(forum).ConfigureAwait(false);
+
+        await LoadData();
+    }
+
     private void ToggleNewForumForm()
     {
         showNewForumForm = !showNewForumForm;
-    }
-
-    private void ShowDeleteDialog()
-    {
-        showDeleteDialog = true;
-    }
-
-    private void CloseDeleteDialog()
-    {
-        showDeleteDialog = false;
     }
 
     private async Task DeleteGroup()
@@ -180,9 +162,6 @@ else
         if (ForumGroup != null)
         {
             await ForumService.DeleteForumGroupAsync(ForumGroup).ConfigureAwait(false);
-            showDeleteDialog = false;
-
-            // Notify the parent component
             await OnGroupDeleted.InvokeAsync(ForumGroup);
         }
     }
@@ -214,5 +193,11 @@ else
     {
         public string Name { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
+    }
+
+    private async Task DeleteForum(Forum forum)
+    {
+        await ForumService.DeleteForumAsync(forum).ConfigureAwait(false);
+        await LoadData();
     }
 }

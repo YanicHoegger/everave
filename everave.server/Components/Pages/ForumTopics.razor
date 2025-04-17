@@ -1,6 +1,7 @@
 ﻿@page "/forum/{id}"
 @rendermode InteractiveServer
 @using everave.server.Forum
+@using everave.server.UserManagement
 @using MongoDB.Bson
 @using Microsoft.AspNetCore.Components.Authorization
 @inject IForumService ForumService
@@ -27,6 +28,9 @@ else
                     <tr>
                         <th>Name</th>
                         <th style="width: 15%;">Entries</th>
+                        <AuthorizeView Roles="@ApplicationUser.AdminRole">
+                            <th style="width: 50px" />
+                        </AuthorizeView>
                     </tr>
                 </thead>
                 <tbody>
@@ -40,6 +44,11 @@ else
                                 <small class="text-muted">@topic.CreatedAt</small>
                             </td>
                             <td>@topic.NumberOfEntries</td>
+                            <AuthorizeView Roles="@ApplicationUser.AdminRole">
+                                <Delete Title="Thema löschen"
+                                        Message="Möchten Sie dieses Forum wirklich löschen?"
+                                        OnDeleteConfirmed="() => DeleteTopic(topic)" />
+                            </AuthorizeView>
                         </tr>
                     }
                 </tbody>
@@ -57,9 +66,8 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        var forumId = ForumId;
-        forum = await ForumService.GetForumAsync(forumId);
-        topics = await ForumService.GetTopicsByForumIdAsync(forumId);
+        forum = await ForumService.GetForumAsync(ForumId);
+        topics = await ForumService.GetTopicsByForumIdAsync(ForumId);
     }
 
     private ObjectId ForumId => new(id);
@@ -67,5 +75,11 @@ else
     private void NavigateToAddTopic()
     {
         NavigationManager.NavigateTo($"/forum/{id}/add-topic");
+    }
+
+    private async Task DeleteTopic(Topic topic)
+    {
+        await ForumService.DeleteTopicAsync(topic).ConfigureAwait(false);
+        await OnInitializedAsync().ConfigureAwait(false);
     }
 }
