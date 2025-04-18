@@ -1,11 +1,8 @@
 ﻿@using everave.server.Forum
-@using everave.server.UserManagement
 @using Microsoft.AspNetCore.Components.Authorization
-@using Microsoft.AspNetCore.Identity
 @using MongoDB.Bson
 @inject IForumService ForumService
 @inject AuthenticationStateProvider AuthProvider
-@inject UserManager<ApplicationUser> UserManager
 
 @if (forums == null)
 {
@@ -58,7 +55,7 @@ else
                                     <div>
                                         <strong>@forum.LastEntryDetails.TopicTitle</strong><br />
                                         <small class="text-muted">
-                                            @forum.LastEntryDetails.CreatedAt.ToString("g") by @forum.LastEntryDetails.Author
+                                            @forum.LastEntryDetails.CreatedAt.ToString("g") by <UserLink UserId="@forum.LastEntryDetails.Author.ToString()"/>
                                         </small>
                                     </div>
                                 }
@@ -170,13 +167,12 @@ else
     {
         var lastEntry = await ForumService.GetEntryById((ObjectId)forum.LastEntry!).ConfigureAwait(false);
         var topic = await ForumService.GetTopicByIdAsync(lastEntry.TopicId).ConfigureAwait(false);
-        var user = await UserManager.FindByIdAsync(lastEntry.UserId.ToString()).ConfigureAwait(false);
-
+    
         return new LastEntryDetails
             {
                 TopicTitle = topic.Title,
                 CreatedAt = lastEntry.CreatedAt,
-                Author = user?.UserName ?? string.Empty
+                Author = lastEntry.UserId
             };
     }
 
@@ -240,7 +236,7 @@ else
     {
         public string TopicTitle { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
-        public string Author { get; set; } = string.Empty;
+        public ObjectId Author { get; set; }
     }
 
     public class NewForum

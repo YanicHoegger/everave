@@ -1,0 +1,39 @@
+﻿@page "/user-details/{UserId}"
+@using Microsoft.AspNetCore.Identity
+@using everave.server.UserManagement
+@inject UserManager<ApplicationUser> UserManager
+
+
+@if (user == null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <h3>Profil von @user.UserName</h3>
+
+    <div class="card">
+        <div class="card-header">
+            <h5>@user.UserName</h5>
+        </div>
+        <div class="card-body">
+            <p><strong>Email:</strong> @user.Email</p>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public string UserId { get; set; } = string.Empty;
+
+    private ApplicationUser? user;
+    private IList<string>? roles;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!string.IsNullOrWhiteSpace(UserId))
+        {
+            user = await UserManager.FindByIdAsync(UserId);
+            roles = user != null ? await UserManager.GetRolesAsync(user) : new List<string>();
+        }
+    }
+}

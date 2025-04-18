@@ -1,0 +1,30 @@
+﻿@using Microsoft.AspNetCore.Identity
+@using everave.server.UserManagement
+@inject UserManager<ApplicationUser> UserManager
+@inject NavigationManager NavigationManager
+
+@if (user != null)
+{
+    <a href="javascript:void(0)" @onclick="NavigateToUserDetails" class="text-decoration-none">
+        @user.UserName
+    </a>
+}
+
+@code {
+    [Parameter] public string UserId { get; set; } = string.Empty;
+
+    private ApplicationUser? user;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!string.IsNullOrWhiteSpace(UserId))
+        {
+            user = await UserManager.FindByIdAsync(UserId).ConfigureAwait(false);
+        }
+    }
+
+    private void NavigateToUserDetails()
+    {
+        NavigationManager.NavigateTo($"/user-details/{UserId}");
+    }
+}

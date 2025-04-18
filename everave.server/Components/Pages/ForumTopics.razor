@@ -4,10 +4,8 @@
 @using everave.server.UserManagement
 @using MongoDB.Bson
 @using Microsoft.AspNetCore.Components.Authorization
-@using Microsoft.AspNetCore.Identity
 @inject IForumService ForumService
 @inject NavigationManager NavigationManager
-@inject UserManager<ApplicationUser> UserManager
 
 @if (topics == null)
 {
@@ -50,7 +48,7 @@ else
                                 {
                                     <div>
                                         <small class="text-muted">
-                                            @topic.LastEntryDetails.CreatedAt.ToString("g") by @topic.LastEntryDetails.Author
+                                            @topic.LastEntryDetails.CreatedAt.ToString("g") by <UserLink UserId="@topic.LastEntryDetails.Author.ToString()"/>
                                         </small>
                                     </div>
                                 }
@@ -95,12 +93,11 @@ else
     private async Task<LastEntryDetails> CreateLastEntryDetails(Topic topic)
     {
         var lastEntry = await ForumService.GetEntryById((ObjectId)topic.LastEntry!).ConfigureAwait(false);
-        var user = await UserManager.FindByIdAsync(lastEntry.UserId.ToString()).ConfigureAwait(false);
 
         return new LastEntryDetails
             {
                 CreatedAt = lastEntry.CreatedAt,
-                Author = user?.UserName ?? string.Empty
+                Author = lastEntry.UserId
             };
     }
 
@@ -124,6 +121,6 @@ else
     public class LastEntryDetails
     {
         public DateTime CreatedAt { get; set; }
-        public string Author { get; set; } = string.Empty;
+        public ObjectId Author { get; set; } 
     }
 }
