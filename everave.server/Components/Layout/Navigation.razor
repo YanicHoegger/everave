@@ -1,0 +1,193 @@
+﻿@using System.Text.RegularExpressions
+@using everave.server.Forum
+@using everave.server.UserManagement
+@using Microsoft.AspNetCore.Identity
+@using MongoDB.Bson
+@inject IForumService ForumService
+@inject UserManager<ApplicationUser> UserManager
+
+<nav class="breadcrumb-nav">
+    @if (Breadcrumbs.Any())
+    {
+        @foreach (var breadcrumb in Breadcrumbs)
+        {
+            <span class="breadcrumb-item">
+                @if (breadcrumb.IsCurrent)
+                {
+                    <span>@breadcrumb.Name</span>
+                }
+                else
+                {
+                    <a href="@breadcrumb.Url">@breadcrumb.Name</a>
+                }
+            </span>
+            @if (!breadcrumb.IsCurrent)
+            {
+                <span class="breadcrumb-separator">
+                    <i class="bi bi-caret-right-fill"></i>
+                </span>
+            }
+        }
+    }
+</nav>
+
+@code {
+    private List<Breadcrumb> Breadcrumbs { get; set; } = new();
+
+    [Inject]
+    private NavigationManager NavigationManager { get; set; } = default!;
+
+    protected override Task OnInitializedAsync()
+    {
+        return BuildBreadcrumbs();
+    }
+
+    private async Task BuildBreadcrumbs()
+    {
+        var uri = new Uri(NavigationManager.Uri);
+        Breadcrumbs.Clear();
+
+        await foreach (var breadcrumb in MatchUrl(uri.LocalPath))
+        {
+            Breadcrumbs.Add(breadcrumb);
+        }
+    }
+
+    private async IAsyncEnumerable<Breadcrumb> MatchUrl(string url)
+    {
+        if (Regex.IsMatch(url, PageUrlRegex.AddTopicPattern))
+        {
+            var match = Regex.Match(url, PageUrlRegex.AddTopicPattern);
+            var forumId = match.Groups[PageUrlRegex.AddTopicForumIdGroup].Value;
+
+            yield return CreateForum();
+            yield return await CreateForum(forumId).ConfigureAwait(false);
+            yield return new Breadcrumb
+                {
+                    Name = "Neues Thema",
+                    Url = string.Empty,
+                    IsCurrent = true
+                };
+        }
+        else if (Regex.IsMatch(url, PageUrlRegex.EditUserPattern))
+        {
+            yield return CreateForum();
+            yield return CreateAdmin();
+            yield return new Breadcrumb
+                {
+                    Name = "Benutzer bearbeiten",
+                    Url = string.Empty,
+                    IsCurrent = true
+                };
+        }
+        else if (Regex.IsMatch(url, PageUrlRegex.ForumTopicsPattern))
+        {
+            var match = Regex.Match(url, PageUrlRegex.ForumTopicsPattern);
+            var id = match.Groups[PageUrlRegex.ForumTopicsIdGroup].Value;
+
+            yield return CreateForum();
+            yield return await CreateForum(id) with { IsCurrent = true };
+        }
+        else if (Regex.IsMatch(url, PageUrlRegex.TopicPagePattern))
+        {
+            var match = Regex.Match(url, PageUrlRegex.TopicPagePattern);
+            var id = match.Groups[PageUrlRegex.TopicPageIdGroup].Value;
+
+            var topic = await ForumService.GetTopicByIdAsync(new ObjectId(id)).ConfigureAwait(false);
+            var forum = await ForumService.GetForumAsync(topic.ForumId).ConfigureAwait(false);
+
+            yield return CreateForum();
+            yield return CreateForum(forum);
+            yield return await CreateTopic(id) with { IsCurrent = true };
+        }
+        else if (Regex.IsMatch(url, PageUrlRegex.UserDetailsPattern))
+        {
+            var match = Regex.Match(url, PageUrlRegex.UserDetailsPattern);
+            var userId = match.Groups[PageUrlRegex.UserDetailsUserIdGroup].Value;
+
+            var applicationUser = await UserManager.FindByIdAsync(userId).ConfigureAwait(false);
+
+            yield return CreateForum();
+            yield return new Breadcrumb
+                {
+                    Name = applicationUser.UserName,
+                    Url = string.Empty,
+                    IsCurrent = true
+                };
+        }
+        else if (Regex.IsMatch(url, PageUrlRegex.AdminPattern))
+        {
+            yield return CreateForum();
+            yield return CreateAdmin() with { IsCurrent = true };
+        }
+        else if (Regex.IsMatch(url, PageUrlRegex.ForumOverviewPattern))
+        {
+            yield return CreateForum() with { IsCurrent = true };
+        }
+        else if (Regex.IsMatch(url, PageUrlRegex.RegisterPattern))
+        {
+            yield return CreateForum();
+            yield return new Breadcrumb
+                {
+                    Name = "Registrieren",
+                    Url = string.Empty,
+                    IsCurrent = true
+                };
+        }
+        else
+        {
+            Console.WriteLine("No match found.");
+        }
+    }
+
+    private async Task<Breadcrumb> CreateTopic(string id)
+    {
+        var topic = await ForumService.GetTopicByIdAsync(new ObjectId(id)).ConfigureAwait(false);
+        return new Breadcrumb
+            {
+                Name = topic.Title,
+                Url = $"/topic/{id}"
+            };
+    }
+
+    private Breadcrumb CreateAdmin()
+    {
+        return new Breadcrumb
+            {
+                Name = "Administration",
+                Url = "/admin",
+            };
+    }
+
+    private Breadcrumb CreateForum()
+    {
+        return new Breadcrumb
+            {
+                Name = "Forum",
+                Url = "/forums",
+            };
+    }
+
+    private async Task<Breadcrumb> CreateForum(string id)
+    {
+        var forum = await ForumService.GetForumAsync(new ObjectId(id)).ConfigureAwait(false);
+
+        return CreateForum(forum);
+    }
+
+    private static Breadcrumb CreateForum(Forum forum)
+    {
+        return new Breadcrumb
+        {
+            Name = forum.Name,
+            Url = $"/forum/{forum.Id.ToString()}",
+        };
+    }
+
+    private record Breadcrumb
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Url { get; set; } = string.Empty;
+        public bool IsCurrent { get; set; }
+    }
+}
