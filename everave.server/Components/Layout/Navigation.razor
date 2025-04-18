@@ -11,7 +11,7 @@
     {
         @foreach (var breadcrumb in Breadcrumbs)
         {
-            <span class="breadcrumb-item">
+            <div class="breadcrumb-item">
                 @if (breadcrumb.IsCurrent)
                 {
                     <span>@breadcrumb.Name</span>
@@ -20,7 +20,7 @@
                 {
                     <a href="@breadcrumb.Url">@breadcrumb.Name</a>
                 }
-            </span>
+            </div>
             @if (!breadcrumb.IsCurrent)
             {
                 <span class="breadcrumb-separator">

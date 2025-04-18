@@ -49,3 +49,65 @@ h1:focus {
 .darker-border-checkbox.form-check-input {
     border-color: #929292;
 }
+
+.entry-card {
+    display: flex;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 16px;
+    background-color: #fff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.creator-info {
+    width: 80px;
+    flex-shrink: 0;
+}
+
+.profile-picture {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.creator-name {
+    font-size: 0.9rem;
+    font-weight: bold;
+    color: #333;
+}
+
+.entry-content {
+    flex-grow: 1;
+}
+
+.entry-header {
+    font-size: 0.8rem;
+    color: #666;
+}
+
+.entry-body {
+    font-size: 1rem;
+    color: #333;
+}
+
+.breadcrumb-nav {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem; /* Consistent spacing between items */
+}
+
+.breadcrumb-item {
+    font-size: 1rem;
+    display: inline-block;
+    align-items: center;
+    margin: 0; /* Remove any default margins */
+}
+
+.breadcrumb-separator {
+    font-size: 1rem;
+    color: #666; /* Adjust color to match your theme */
+    display: flex;
+    align-items: center;
+    margin: 0; /* Remove any default margins */
+}

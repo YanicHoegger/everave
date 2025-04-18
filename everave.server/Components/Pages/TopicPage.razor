@@ -4,8 +4,10 @@
 @using everave.server.UserManagement
 @using MongoDB.Bson
 @using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Identity
 @inject IForumService ForumService
 @inject AuthenticationStateProvider AuthProvider
+@inject UserManager<ApplicationUser> UserManager
 
 @if (entries == null)
 {
@@ -13,13 +15,28 @@
 }
 else
 {
+    <AuthorizeView>
+        <button class="btn btn-primary" @onclick="() => AddEntry()">Antworten</button>
+    </AuthorizeView>
+
     foreach (var entry in entries)
     {
-        <div class="entry">
-            <div class="ck-content">
-                @((MarkupString)entry.HtmlContent)
+        <div class="entry-card d-flex mb-4">
+            <!-- Creator Information -->
+            <div class="creator-info text-center me-3">
+                <img src="@entry.CreatorProfilePictureUrl" alt="Profile Picture" class="profile-picture mb-2" />
+                <p class="creator-name">@entry.CreatorName</p>
             </div>
-            <hr />
+
+            <!-- Entry Content -->
+            <div class="entry-content flex-grow-1">
+                <div class="entry-header text-muted mb-2">
+                    <small>Created at: @entry.CreatedAt.ToString("g")</small>
+                </div>
+                <div class="entry-body ck-content">
+                    @((MarkupString)entry.HtmlContent)
+                </div>
+            </div>
         </div>
     }
 
@@ -42,13 +59,26 @@ else
     [Parameter]
     public string id { get; set; } = default!;
 
-    private List<Entry>? entries;
+    private List<EntryDisplay>? entries;
     private bool isAdding = false;
     private string newContent = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
-        entries = await ForumService.GetEntriesByTopicIdAsync(new ObjectId(id));
+        var rawEntries = await ForumService.GetEntriesByTopicIdAsync(new ObjectId(id)).ConfigureAwait(false);
+        entries = new List<EntryDisplay>();
+
+        foreach (var entry in rawEntries)
+        {
+            var user = await UserManager.FindByIdAsync(entry.UserId.ToString()).ConfigureAwait(false);
+            entries.Add(new EntryDisplay
+                {
+                    HtmlContent = entry.HtmlContent,
+                    CreatedAt = entry.CreatedAt,
+                    CreatorName = user?.UserName ?? "Unknown",
+                    CreatorProfilePictureUrl = user?.ProfilePictureUrl ?? "/images/default-profile.png"
+                });
+        }
     }
 
     private async Task SaveEntry()
@@ -64,7 +94,15 @@ else
                 };
             await ForumService.AddEntryAsync(entry);
 
-            entries!.Add(entry);
+            var user = await UserManager.FindByIdAsync(entry.UserId.ToString());
+            entries!.Add(new EntryDisplay
+                {
+                    HtmlContent = entry.HtmlContent,
+                    CreatedAt = entry.CreatedAt,
+                    CreatorName = user?.UserName ?? "Unknown",
+                    CreatorProfilePictureUrl = user?.ProfilePictureUrl ?? "/images/default-profile.png"
+                });
+
             newContent = string.Empty;
             isAdding = false;
         }
@@ -73,5 +111,13 @@ else
     private void AddEntry()
     {
         isAdding = true;
+    }
+
+    private class EntryDisplay
+    {
+        public string HtmlContent { get; set; } = string.Empty;
+        public DateTime CreatedAt { get; set; }
+        public string CreatorName { get; set; } = string.Empty;
+        public string CreatorProfilePictureUrl { get; set; } = string.Empty;
     }
 }
