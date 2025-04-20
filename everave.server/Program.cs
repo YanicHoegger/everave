@@ -2,6 +2,7 @@ using AspNetCore.Identity.Mongo;
 using AspNetCore.Identity.Mongo.Model;
 using everave.server.Components;
 using everave.server.Forum;
+using everave.server.Import;
 using everave.server.UserManagement;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -22,6 +23,7 @@ builder.Services.AddHttpClient("ImageService", client =>
 });
 
 builder.Services.AddSingleton<IForumService, ForumService>();
+builder.Services.AddScoped<Importer>();
 
 const string mongodb = "MongoDb";
 builder.Services.AddSingleton(sp =>
