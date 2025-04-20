@@ -1,4 +1,4 @@
-﻿@page "/topic/{id}"
+﻿@page "/topic/{id}/{page?}"
 @rendermode InteractiveServer
 @using everave.server.Forum
 @using everave.server.UserManagement
@@ -8,6 +8,8 @@
 @inject IForumService ForumService
 @inject AuthenticationStateProvider AuthProvider
 @inject UserManager<ApplicationUser> UserManager
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
 
 @if (entries == null)
 {
@@ -16,8 +18,35 @@
 else
 {
     <AuthorizeView>
-        <button class="btn btn-primary" @onclick="() => AddEntry()">Antworten</button>
+        @if (!isAdding)
+        {
+            <button class="btn btn-primary" @onclick="AddEntry">Antworten</button>
+        }
     </AuthorizeView>
+
+    <div class="pagination d-flex align-items-center justify-content-end">
+        @if (totalPages > 1)
+        {
+            <button class="btn btn-sm btn-outline-secondary me-1" disabled="@IsCurrentPage(1)" @onclick="() => NavigateToPage(1)">1</button>
+            var currentPage = GetCurrentPage();
+            @if (currentPage > 3)
+            {
+                <span class="text-muted me-1">...</span>
+            }
+
+            @foreach (var pageNumber in GetVisiblePages())
+            {
+                <button class="btn btn-sm btn-outline-secondary me-1" disabled="@IsCurrentPage(pageNumber)" @onclick="() => NavigateToPage(pageNumber)">@pageNumber</button>
+            }
+
+            @if (currentPage < totalPages - 2)
+            {
+                <span class="text-muted me-1">...</span>
+            }
+
+            <button class="btn btn-sm btn-outline-secondary" disabled="@IsCurrentPage(totalPages)" @onclick="() => NavigateToPage(totalPages)">@totalPages</button>
+        }
+    </div>
 
     foreach (var entry in entries)
     {
@@ -45,12 +74,13 @@ else
         <div class="editor">
             <everave.server.Components.RichTextEditor @bind-Value="newContent" />
             <button class="btn btn-success mt-2" @onclick="SaveEntry">Speichern</button>
+            <div id="richTextEditor"></div>
         </div>
     }
     else
     {
         <AuthorizeView>
-            <button class="btn btn-primary" @onclick="() => AddEntry()">Antworten</button>
+            <button class="btn btn-primary" @onclick="AddEntry">Antworten</button>
         </AuthorizeView>
     }
 }
@@ -58,14 +88,20 @@ else
 @code {
     [Parameter]
     public string id { get; set; } = default!;
+    [Parameter]
+    public string? page { get; set; }
+
+    private int totalEntries = 0;
+    private int totalPages = 0;
 
     private List<EntryDisplay>? entries;
     private bool isAdding = false;
+    private bool needsScrolling = true;
     private string newContent = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
-        var rawEntries = await ForumService.GetEntriesByTopicIdAsync(new ObjectId(id)).ConfigureAwait(false);
+        var rawEntries = await ForumService.GetEntriesByTopicIdAsync(new ObjectId(id), GetCurrentPage()).ConfigureAwait(false);
         entries = new List<EntryDisplay>();
 
         foreach (var entry in rawEntries)
@@ -78,6 +114,31 @@ else
                     CreatorName = user?.UserName ?? "Unknown",
                     CreatorProfilePictureUrl = user?.ProfilePictureUrl ?? "/images/default-profile.png"
                 });
+        }
+
+        if (rawEntries.Any())
+        {
+            totalEntries = (await ForumService.GetTopicByIdAsync(rawEntries.First().TopicId).ConfigureAwait(false)).NumberOfEntries;
+            totalPages = (int)Math.Ceiling((double)totalEntries / ForumService.PageSize);
+        }
+
+        var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
+        var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
+
+        if (query.TryGetValue("isAdding", out var isAddingValue) && bool.TryParse(isAddingValue, out var isAddingResult))
+        {
+            isAdding = isAddingResult;
+
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await base.OnAfterRenderAsync(firstRender).ConfigureAwait(false);
+        if (isAdding && needsScrolling)
+        {
+            needsScrolling = false;
+            await JSRuntime.InvokeVoidAsync("scrollToElement", "richTextEditor").ConfigureAwait(false);
         }
     }
 
@@ -110,7 +171,18 @@ else
 
     private void AddEntry()
     {
-        isAdding = true;
+        var currentPage = GetCurrentPage();
+        if (currentPage != totalPages)
+        {
+            needsScrolling = false;
+            NavigationManager.NavigateTo($"/topic/{id}/{totalPages}?isAdding=true");
+        }
+        else
+        {
+            needsScrolling = true;
+            isAdding = true;
+            StateHasChanged();
+        }
     }
 
     private class EntryDisplay
@@ -119,5 +191,36 @@ else
         public DateTime CreatedAt { get; set; }
         public string CreatorName { get; set; } = string.Empty;
         public string CreatorProfilePictureUrl { get; set; } = string.Empty;
+    }
+
+    private IEnumerable<int> GetVisiblePages()
+    {
+        var page = GetCurrentPage();
+        var start = Math.Max(2, page - 2);
+        var end = Math.Min(totalPages - 1, page + 2);
+
+        return Enumerable.Range(start, end - start + 1);
+    }
+
+    private int GetCurrentPage()
+    {
+        if (page != null && int.TryParse(page, out var parsedPage))
+        {
+            return parsedPage;
+        }
+
+        return 1;
+    }
+
+    private bool IsCurrentPage(int pageNumber) => pageNumber == GetCurrentPage();
+
+    private void NavigateToPage(int pageNumber)
+    {
+        var currentPage = GetCurrentPage();
+        if (pageNumber != currentPage)
+        {
+            currentPage = pageNumber;
+            NavigationManager.NavigateTo($"/topic/{id}/{currentPage}");
+        }
     }
 }

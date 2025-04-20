@@ -4,6 +4,7 @@ namespace everave.server.Forum
 {
     public interface IForumService
     {
+        int PageSize { get; }
         Task<List<ForumGroup>> GetAllForumGroupsAsync();
         Task<List<Forum>> GetForumsByGroupIdAsync(ObjectId groupId);
         Task<Forum> GetForumAsync(ObjectId forum);

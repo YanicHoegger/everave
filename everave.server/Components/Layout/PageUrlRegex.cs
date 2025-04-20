@@ -24,7 +24,7 @@ public static class PageUrlRegex
     public const string RegisterPattern = @"^/register$";
 
     // TopicPage.razor
-    public const string TopicPagePattern = @"^/topic/(?<Id>[^/]+)$";
+    public const string TopicPagePattern = @"^/topic/(?<Id>[^/]+)";
     public const string TopicPageIdGroup = "Id";
 
     // UserDetails.razor

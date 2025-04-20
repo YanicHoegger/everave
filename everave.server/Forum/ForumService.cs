@@ -10,8 +10,6 @@ namespace everave.server.Forum
         private readonly IMongoCollection<Topic> _topics;
         private readonly IMongoCollection<Entry> _entries;
 
-        private const int PageSize = 15;
-
         public ForumService(IMongoDatabase database)
         {
             _forumGroups = database.GetCollection<ForumGroup>("forumGroups");
@@ -29,18 +27,7 @@ namespace everave.server.Forum
                 Builders<Forum>.IndexKeys.Ascending(f => f.GroupId)));
         }
 
-        public async Task<Dictionary<ForumGroup, List<Forum>>> GetForumsGroupedAsync()
-        {
-            var groups = await _forumGroups.Find(_ => true).ToListAsync();
-            var forums = await _forums.Find(_ => true).ToListAsync();
-
-            var result = groups.ToDictionary(
-                g => g,
-                g => forums.Where(f => f.GroupId == g.Id).ToList()
-            );
-
-            return result;
-        }
+        public int PageSize => 15;
 
         public async Task<List<ForumGroup>> GetAllForumGroupsAsync() => 
             await _forumGroups.Find(_ => true ).ToListAsync();
