@@ -25,7 +25,7 @@ else
         }
     </AuthorizeView>
 
-    <PageNavigation BaseUrl="@GetBaseUrl()" CurrentPage="@GetCurrentPage()" TotalPages="@totalPages" />
+    <PageNavigation BaseUrl="@($"/topic/{id}")" CurrentPage="@GetCurrentPage()" TotalPages="@totalPages" />
 
     foreach (var entry in entries)
     {
@@ -180,5 +180,4 @@ else
         return 1;
     }
 
-    private string GetBaseUrl() => $"/topic/{id}";
 }

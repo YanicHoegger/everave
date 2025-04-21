@@ -3,7 +3,7 @@
 <div class="pagination d-flex align-items-center justify-content-end">
     @if (TotalPages > 1)
     {
-        <button class="btn btn-sm btn-outline-secondary me-1" disabled="@IsCurrentPage(1)" @onclick="() => NavigateToPage(1)">1</button>
+        <button class="btn btn-sm btn-outline-secondary me-1" disabled="@IsNavigationDisabled(1)" @onclick="() => NavigateToPage(1)">1</button>
         @if (CurrentPage > 3)
         {
             <span class="text-muted me-1">...</span>
@@ -11,7 +11,7 @@
 
         @foreach (var pageNumber in GetVisiblePages())
         {
-            <button class="btn btn-sm btn-outline-secondary me-1" disabled="@IsCurrentPage(pageNumber)" @onclick="() => NavigateToPage(pageNumber)">@pageNumber</button>
+            <button class="btn btn-sm btn-outline-secondary me-1" disabled="@IsNavigationDisabled(pageNumber)" @onclick="() => NavigateToPage(pageNumber)">@pageNumber</button>
         }
 
         @if (CurrentPage < TotalPages - 2)
@@ -19,7 +19,7 @@
             <span class="text-muted me-1">...</span>
         }
 
-        <button class="btn btn-sm btn-outline-secondary" disabled="@IsCurrentPage(TotalPages)" @onclick="() => NavigateToPage(TotalPages)">@TotalPages</button>
+        <button class="btn btn-sm btn-outline-secondary" disabled="@IsNavigationDisabled(TotalPages)" @onclick="() => NavigateToPage(TotalPages)">@TotalPages</button>
     }
 </div>
 
@@ -31,23 +31,34 @@
     public int TotalPages { get; set; }
     [Parameter]
     public string BaseUrl { get; set; } = string.Empty;
+    [Parameter]
+    public bool DisableNavigationToCurrent { get; set; } = true;
 
     private IEnumerable<int> GetVisiblePages()
     {
+        if (TotalPages < 2)
+            return [];
+        if (TotalPages <= 5)
+            return Enumerable.Range(2, TotalPages - 2);
+        if(CurrentPage <= 3)
+            return Enumerable.Range(2, 4);
+        var top = TotalPages - CurrentPage;
+        if (top < 3)
+            return Enumerable.Range(TotalPages - 5, 4);
+
         var start = Math.Max(2, CurrentPage - 2);
         var end = Math.Min(TotalPages - 1, CurrentPage + 2);
 
         return Enumerable.Range(start, end - start + 1);
     }
 
-    private bool IsCurrentPage(int pageNumber) => pageNumber == CurrentPage;
+    private bool IsNavigationDisabled(int pageNumber)
+    {
+        return DisableNavigationToCurrent && pageNumber == CurrentPage;
+    }
 
     private void NavigateToPage(int pageNumber)
     {
-        if (pageNumber == CurrentPage)
-            return;
-
-        CurrentPage = pageNumber;
-        NavigationManager.NavigateTo($"{BaseUrl}/{CurrentPage}");
+        NavigationManager.NavigateTo($"{BaseUrl}/{pageNumber}");
     }
 }

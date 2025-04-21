@@ -20,7 +20,7 @@ else
             <AuthorizeView>
                 <button class="btn btn-sm btn-light" @onclick="NavigateToAddTopic">Neues Thema</button>
             </AuthorizeView>
-            <PageNavigation BaseUrl="@GetBaseUrl()" CurrentPage="@GetCurrentPage()" TotalPages="@totalPages" />
+            <PageNavigation BaseUrl="@($"/forum/{id}")" CurrentPage="@GetCurrentPage()" TotalPages="@totalPages" />
         </div>
         <div class="card-body p-0">
             <table class="table table-hover mb-0">
@@ -43,6 +43,10 @@ else
                                     @topic.Topic.Title
                                 </a><br />
                                 <small class="text-muted">@topic.Topic.CreatedAt</small>
+                                <PageNavigation BaseUrl="@($"/topic/{topic.Topic.Id}")" 
+                                                CurrentPage="1" 
+                                                TotalPages="@(topic.Topic.NumberOfEntries/ForumService.PageSize)"
+                                                DisableNavigationToCurrent="false"/>
                             </td>
                             <td>@topic.Topic.NumberOfEntries</td>
                             <td>
@@ -143,5 +147,4 @@ else
         return 1;
     }
 
-    private string GetBaseUrl() => $"/forum/{id}";
 }
