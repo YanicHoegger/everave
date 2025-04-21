@@ -29,28 +29,36 @@ namespace everave.server.Forum
 
         public int PageSize => 15;
 
-        public async Task<List<ForumGroup>> GetAllForumGroupsAsync() => 
-            await _forumGroups.Find(_ => true ).ToListAsync();
-       
-        public async Task<List<Forum>> GetForumsByGroupIdAsync(ObjectId groupId) => 
-            await _forums.Find(f => f.GroupId == groupId).ToListAsync();
+        public Task<List<ForumGroup>> GetAllForumGroupsAsync() =>
+            _forumGroups.Find(_ => true).ToListAsync();
 
-        public async Task<Forum> GetForumAsync(ObjectId forum) =>
-            await _forums.Find(f => f.Id == forum).FirstOrDefaultAsync();
+        public Task<List<Forum>> GetForumsByGroupIdAsync(ObjectId groupId) =>
+            _forums.Find(f => f.GroupId == groupId).ToListAsync();
 
-        public async Task<List<Topic>> GetTopicsByForumIdAsync(ObjectId forumId) =>
-            await _topics.Find(t => t.ForumId == forumId).ToListAsync();
+        public Task<Forum> GetForumAsync(ObjectId forum) =>
+            _forums.Find(f => f.Id == forum).FirstOrDefaultAsync();
 
-        public Task<Topic> GetTopicByIdAsync(ObjectId topicId) => 
+        public Task<List<Topic>> GetTopicsByForumIdAsync(ObjectId forumId) =>
+            _topics.Find(t => t.ForumId == forumId).ToListAsync();
+
+        public Task<List<Topic>> GetTopicsByForumIdAsync(ObjectId forumId, int page) =>
+            _topics
+                .Find(t => t.ForumId == forumId)
+                .Skip((page - 1) * PageSize)
+                .Limit(PageSize)
+                .SortByDescending(t => t.CreatedAt)
+                .ToListAsync();
+
+        public Task<Topic> GetTopicByIdAsync(ObjectId topicId) =>
             _topics.Find(t => t.Id == topicId).FirstAsync();
 
-        public async Task<List<Entry>> GetEntriesByTopicIdAsync(ObjectId topicId, int page = 1) =>
-            await _entries
-            .Find(e => e.TopicId == topicId)
-            .Skip((page - 1) * PageSize)
-            .Limit(PageSize)
-            .SortBy(e => e.CreatedAt)
-            .ToListAsync();
+        public Task<List<Entry>> GetEntriesByTopicIdAsync(ObjectId topicId, int page = 1) =>
+            _entries
+                .Find(e => e.TopicId == topicId)
+                .Skip((page - 1) * PageSize)
+                .Limit(PageSize)
+                .SortBy(e => e.CreatedAt)
+                .ToListAsync();
 
         public Task<Entry> GetEntryById(ObjectId entryId) =>
             _entries.Find(e => e.Id == entryId).FirstAsync();
@@ -58,13 +66,13 @@ namespace everave.server.Forum
         public Task AddForumGroupAsync(ForumGroup group) =>
             _forumGroups.InsertOneAsync(group);
 
-        public Task DeleteForumGroupAsync(ForumGroup group) => 
+        public Task DeleteForumGroupAsync(ForumGroup group) =>
             _forumGroups.DeleteOneAsync(g => g.Id == group.Id);
 
         public Task AddForumAsync(Forum forum) =>
             _forums.InsertOneAsync(forum);
 
-        public Task DeleteForumAsync(Forum forum) => 
+        public Task DeleteForumAsync(Forum forum) =>
             _forums.DeleteOneAsync(f => f.Id == forum.Id);
 
         public async Task AddTopicAsync(Topic topic)

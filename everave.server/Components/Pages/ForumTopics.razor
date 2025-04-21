@@ -1,9 +1,10 @@
-﻿@page "/forum/{id}"
+﻿@page "/forum/{id}/{page?}"
 @rendermode InteractiveServer
 @using everave.server.Forum
 @using everave.server.UserManagement
 @using MongoDB.Bson
 @using Microsoft.AspNetCore.Components.Authorization
+@using everave.server.Components.Common
 @inject IForumService ForumService
 @inject NavigationManager NavigationManager
 
@@ -19,6 +20,7 @@ else
             <AuthorizeView>
                 <button class="btn btn-sm btn-light" @onclick="NavigateToAddTopic">Neues Thema</button>
             </AuthorizeView>
+            <PageNavigation BaseUrl="@GetBaseUrl()" CurrentPage="@GetCurrentPage()" TotalPages="@totalPages" />
         </div>
         <div class="card-body p-0">
             <table class="table table-hover mb-0">
@@ -48,7 +50,7 @@ else
                                 {
                                     <div>
                                         <small class="text-muted">
-                                            @topic.LastEntryDetails.CreatedAt.ToString("g") by <UserLink UserId="@topic.LastEntryDetails.Author.ToString()"/>
+                                            @topic.LastEntryDetails.CreatedAt.ToString("g") by <UserLink UserId="@topic.LastEntryDetails.Author.ToString()" />
                                         </small>
                                     </div>
                                 }
@@ -73,6 +75,10 @@ else
 @code {
     [Parameter]
     public string id { get; set; } = default!;
+    [Parameter]
+    public string? page { get; set; }
+
+    private int totalPages;
 
     private Forum? forum;
     private List<TopicDisplay>? topics;
@@ -80,12 +86,15 @@ else
     protected override async Task OnInitializedAsync()
     {
         forum = await ForumService.GetForumAsync(ForumId);
-        topics = (await ForumService.GetTopicsByForumIdAsync(ForumId))
+        topics = (await ForumService.GetTopicsByForumIdAsync(ForumId, GetCurrentPage()))
             .Select(x => new TopicDisplay
                 {
                     Topic = x,
                     LastEntryDetails = x.LastEntry != null ? CreateLastEntryDetails(x).Result : null
                 }).ToList();
+
+        var totalEntries = forum.NumberOfTopics;
+        totalPages = (int)Math.Ceiling((double)totalEntries / ForumService.PageSize);
     }
 
     private ObjectId ForumId => new(id);
@@ -121,6 +130,18 @@ else
     public class LastEntryDetails
     {
         public DateTime CreatedAt { get; set; }
-        public ObjectId Author { get; set; } 
+        public ObjectId Author { get; set; }
     }
+
+    private int GetCurrentPage()
+    {
+        if (page != null && int.TryParse(page, out var parsedPage))
+        {
+            return parsedPage;
+        }
+
+        return 1;
+    }
+
+    private string GetBaseUrl() => $"/forum/{id}";
 }

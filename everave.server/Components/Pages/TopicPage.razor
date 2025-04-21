@@ -5,6 +5,7 @@
 @using MongoDB.Bson
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Identity
+@using everave.server.Components.Common
 @inject IForumService ForumService
 @inject AuthenticationStateProvider AuthProvider
 @inject UserManager<ApplicationUser> UserManager
@@ -24,29 +25,7 @@ else
         }
     </AuthorizeView>
 
-    <div class="pagination d-flex align-items-center justify-content-end">
-        @if (totalPages > 1)
-        {
-            <button class="btn btn-sm btn-outline-secondary me-1" disabled="@IsCurrentPage(1)" @onclick="() => NavigateToPage(1)">1</button>
-            var currentPage = GetCurrentPage();
-            @if (currentPage > 3)
-            {
-                <span class="text-muted me-1">...</span>
-            }
-
-            @foreach (var pageNumber in GetVisiblePages())
-            {
-                <button class="btn btn-sm btn-outline-secondary me-1" disabled="@IsCurrentPage(pageNumber)" @onclick="() => NavigateToPage(pageNumber)">@pageNumber</button>
-            }
-
-            @if (currentPage < totalPages - 2)
-            {
-                <span class="text-muted me-1">...</span>
-            }
-
-            <button class="btn btn-sm btn-outline-secondary" disabled="@IsCurrentPage(totalPages)" @onclick="() => NavigateToPage(totalPages)">@totalPages</button>
-        }
-    </div>
+    <PageNavigation BaseUrl="@GetBaseUrl()" CurrentPage="@GetCurrentPage()" TotalPages="@totalPages" />
 
     foreach (var entry in entries)
     {
@@ -72,7 +51,7 @@ else
     if (isAdding)
     {
         <div class="editor">
-            <everave.server.Components.RichTextEditor @bind-Value="newContent" />
+            <RichTextEditor @bind-Value="newContent" />
             <button class="btn btn-success mt-2" @onclick="SaveEntry">Speichern</button>
             <div id="richTextEditor"></div>
         </div>
@@ -91,8 +70,7 @@ else
     [Parameter]
     public string? page { get; set; }
 
-    private int totalEntries = 0;
-    private int totalPages = 0;
+    private int totalPages;
 
     private List<EntryDisplay>? entries;
     private bool isAdding = false;
@@ -118,7 +96,7 @@ else
 
         if (rawEntries.Any())
         {
-            totalEntries = (await ForumService.GetTopicByIdAsync(rawEntries.First().TopicId).ConfigureAwait(false)).NumberOfEntries;
+            var totalEntries = (await ForumService.GetTopicByIdAsync(rawEntries.First().TopicId).ConfigureAwait(false)).NumberOfEntries;
             totalPages = (int)Math.Ceiling((double)totalEntries / ForumService.PageSize);
         }
 
@@ -128,7 +106,6 @@ else
         if (query.TryGetValue("isAdding", out var isAddingValue) && bool.TryParse(isAddingValue, out var isAddingResult))
         {
             isAdding = isAddingResult;
-
         }
     }
 
@@ -193,15 +170,6 @@ else
         public string CreatorProfilePictureUrl { get; set; } = string.Empty;
     }
 
-    private IEnumerable<int> GetVisiblePages()
-    {
-        var page = GetCurrentPage();
-        var start = Math.Max(2, page - 2);
-        var end = Math.Min(totalPages - 1, page + 2);
-
-        return Enumerable.Range(start, end - start + 1);
-    }
-
     private int GetCurrentPage()
     {
         if (page != null && int.TryParse(page, out var parsedPage))
@@ -212,15 +180,5 @@ else
         return 1;
     }
 
-    private bool IsCurrentPage(int pageNumber) => pageNumber == GetCurrentPage();
-
-    private void NavigateToPage(int pageNumber)
-    {
-        var currentPage = GetCurrentPage();
-        if (pageNumber != currentPage)
-        {
-            currentPage = pageNumber;
-            NavigationManager.NavigateTo($"/topic/{id}/{currentPage}");
-        }
-    }
+    private string GetBaseUrl() => $"/topic/{id}";
 }

@@ -1,0 +1,53 @@
+﻿@inject NavigationManager NavigationManager
+
+<div class="pagination d-flex align-items-center justify-content-end">
+    @if (TotalPages > 1)
+    {
+        <button class="btn btn-sm btn-outline-secondary me-1" disabled="@IsCurrentPage(1)" @onclick="() => NavigateToPage(1)">1</button>
+        @if (CurrentPage > 3)
+        {
+            <span class="text-muted me-1">...</span>
+        }
+
+        @foreach (var pageNumber in GetVisiblePages())
+        {
+            <button class="btn btn-sm btn-outline-secondary me-1" disabled="@IsCurrentPage(pageNumber)" @onclick="() => NavigateToPage(pageNumber)">@pageNumber</button>
+        }
+
+        @if (CurrentPage < TotalPages - 2)
+        {
+            <span class="text-muted me-1">...</span>
+        }
+
+        <button class="btn btn-sm btn-outline-secondary" disabled="@IsCurrentPage(TotalPages)" @onclick="() => NavigateToPage(TotalPages)">@TotalPages</button>
+    }
+</div>
+
+@code {
+
+    [Parameter]
+    public int CurrentPage { get; set; } = 1;
+    [Parameter]
+    public int TotalPages { get; set; }
+    [Parameter]
+    public string BaseUrl { get; set; } = string.Empty;
+
+    private IEnumerable<int> GetVisiblePages()
+    {
+        var start = Math.Max(2, CurrentPage - 2);
+        var end = Math.Min(TotalPages - 1, CurrentPage + 2);
+
+        return Enumerable.Range(start, end - start + 1);
+    }
+
+    private bool IsCurrentPage(int pageNumber) => pageNumber == CurrentPage;
+
+    private void NavigateToPage(int pageNumber)
+    {
+        if (pageNumber == CurrentPage)
+            return;
+
+        CurrentPage = pageNumber;
+        NavigationManager.NavigateTo($"{BaseUrl}/{CurrentPage}");
+    }
+}

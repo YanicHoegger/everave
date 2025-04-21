@@ -9,6 +9,7 @@ namespace everave.server.Forum
         Task<List<Forum>> GetForumsByGroupIdAsync(ObjectId groupId);
         Task<Forum> GetForumAsync(ObjectId forum);
         Task<List<Topic>> GetTopicsByForumIdAsync(ObjectId forumId);
+        Task<List<Topic>> GetTopicsByForumIdAsync(ObjectId forumId, int page);
         Task<Topic> GetTopicByIdAsync(ObjectId topicId);
         Task<List<Entry>> GetEntriesByTopicIdAsync(ObjectId topicId, int page = 1);
         Task<Entry> GetEntryById(ObjectId entryId);
