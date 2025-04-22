@@ -50,18 +50,7 @@ else
                             </td>
                             <td>@topic.Topic.NumberOfEntries</td>
                             <td>
-                                @if (topic.LastEntryDetails != null)
-                                {
-                                    <div>
-                                        <small class="text-muted">
-                                            @topic.LastEntryDetails.CreatedAt.ToString("g") by <UserLink UserId="@topic.LastEntryDetails.Author.ToString()" />
-                                        </small>
-                                    </div>
-                                }
-                                else
-                                {
-                                    <small class="text-muted">No entries yet</small>
-                                }
+                                <LastEntryDetails EntryId="@(topic.Topic.LastEntry)" ShowTopic="false"/>
                             </td>
                             <AuthorizeView Roles="@ApplicationUser.AdminRole">
                                 <Delete Title="Thema löschen"
@@ -94,7 +83,7 @@ else
             .Select(x => new TopicDisplay
                 {
                     Topic = x,
-                    LastEntryDetails = x.LastEntry != null ? CreateLastEntryDetails(x).Result : null
+                    LastEntry = x.LastEntry
                 }).ToList();
 
         var totalEntries = forum.NumberOfTopics;
@@ -102,17 +91,6 @@ else
     }
 
     private ObjectId ForumId => new(id);
-
-    private async Task<LastEntryDetails> CreateLastEntryDetails(Topic topic)
-    {
-        var lastEntry = await ForumService.GetEntryById((ObjectId)topic.LastEntry!).ConfigureAwait(false);
-
-        return new LastEntryDetails
-            {
-                CreatedAt = lastEntry.CreatedAt,
-                Author = lastEntry.UserId
-            };
-    }
 
     private void NavigateToAddTopic()
     {
@@ -128,13 +106,7 @@ else
     public class TopicDisplay
     {
         public Topic Topic { get; set; } = new();
-        public LastEntryDetails? LastEntryDetails { get; set; }
-    }
-
-    public class LastEntryDetails
-    {
-        public DateTime CreatedAt { get; set; }
-        public ObjectId Author { get; set; }
+        public ObjectId? LastEntry { get; set; }
     }
 
     private int GetCurrentPage()
@@ -146,5 +118,4 @@ else
 
         return 1;
     }
-
 }

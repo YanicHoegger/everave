@@ -63,6 +63,22 @@ namespace everave.server.Forum
         public Task<Entry> GetEntryById(ObjectId entryId) =>
             _entries.Find(e => e.Id == entryId).FirstAsync();
 
+        public async Task<int> GetPageOfEntryAsync(ObjectId entryId)
+        {
+            var entry = await _entries.Find(e => e.Id == entryId).FirstOrDefaultAsync();
+            if (entry == null)
+            {
+                throw new ArgumentException("Entry not found", nameof(entryId));
+            }
+
+            var entriesBeforeCount = await _entries
+                .Find(e => e.TopicId == entry.TopicId && e.CreatedAt < entry.CreatedAt)
+                .CountDocumentsAsync();
+
+            return (int)entriesBeforeCount / PageSize + 1;
+        }
+
+
         public Task AddForumGroupAsync(ForumGroup group) =>
             _forumGroups.InsertOneAsync(group);
 

@@ -22,5 +22,6 @@ namespace everave.server.Forum
         Task DeleteTopicAsync(Topic topic);
         Task AddEntryAsync(Entry entry);
         Task DeleteEntryAsync(Entry entry);
+        Task<int> GetPageOfEntryAsync(ObjectId entryId);
     }
 }

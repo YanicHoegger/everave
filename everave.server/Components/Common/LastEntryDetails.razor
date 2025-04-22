@@ -1,0 +1,83 @@
+﻿@using everave.server.Forum
+@using MongoDB.Bson
+@inject NavigationManager NavigationManager
+@inject IForumService ForumService
+
+@if (EntryId != null && lastEntryDetails != null)
+{
+    <div class="entry-preview" style="cursor: pointer;">
+        <div class="entry-content" @onclick="NavigateToEntry">
+            <p>@lastEntryDetails!.HtmlContent</p>
+        </div>
+        @if (ShowTopic)
+        {
+            <div class="entry-topic" @onclick="NavigateToTopic">
+                <strong>@lastEntryDetails.TopicTitle</strong>
+            </div>
+        }
+        <div class="entry-meta text-muted">
+            <small>Created on @(lastEntryDetails.CreatedAt.ToString("g")) by <UserLink UserId="@lastEntryDetails!.Author.ToString()" /></small>
+        </div>
+    </div>
+}
+else
+{
+    <small class="text-muted">No entries yet</small>
+}
+
+@code {
+
+    [Parameter, EditorRequired]
+    public ObjectId? EntryId { get; set; }
+    [Parameter] 
+    public bool ShowTopic { get; set; } = true;
+
+    private Details? lastEntryDetails;
+    private Topic? Topic;
+    private Entry? LastEntry;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (EntryId == null)
+            return;
+
+        LastEntry = await ForumService.GetEntryById((ObjectId)EntryId).ConfigureAwait(false);
+        Topic = await ForumService.GetTopicByIdAsync(LastEntry.TopicId).ConfigureAwait(false);
+
+        lastEntryDetails = new Details
+            {
+                TopicTitle = Topic.Title,
+                CreatedAt = LastEntry.CreatedAt,
+                Author = LastEntry.UserId,
+                HtmlContent = TruncateHtml(LastEntry.HtmlContent)
+            };
+    }
+
+    private static string TruncateHtml(string html)
+    {
+        const int maxLength = 100;
+        if (string.IsNullOrEmpty(html) || html.Length <= maxLength)
+            return html;
+
+        return html[..maxLength] + "...";
+    }
+
+    private async Task NavigateToEntry()
+    {
+        var page = await ForumService.GetPageOfEntryAsync((ObjectId)EntryId!);
+        NavigationManager.NavigateTo($"/topic/{Topic!.Id.ToString()}/{page}#{EntryId}");
+    }
+
+    private void NavigateToTopic()
+    {
+        NavigationManager.NavigateTo($"/topic/{Topic!.Id.ToString()}/");
+    }
+
+    public class Details
+    {
+        public string TopicTitle { get; set; } = string.Empty;
+        public string HtmlContent { get; set; } = string.Empty;
+        public DateTime CreatedAt { get; set; }
+        public ObjectId Author { get; set; }
+    }
+}
