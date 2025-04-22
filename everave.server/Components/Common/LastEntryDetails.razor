@@ -1,5 +1,6 @@
 ﻿@using everave.server.Forum
 @using MongoDB.Bson
+@using NUglify
 @inject NavigationManager NavigationManager
 @inject IForumService ForumService
 
@@ -29,7 +30,7 @@ else
 
     [Parameter, EditorRequired]
     public ObjectId? EntryId { get; set; }
-    [Parameter] 
+    [Parameter]
     public bool ShowTopic { get; set; } = true;
 
     private Details? lastEntryDetails;
@@ -56,6 +57,8 @@ else
     private static string TruncateHtml(string html)
     {
         const int maxLength = 100;
+        if (html.Contains("<"))
+            html = Uglify.HtmlToText(html).Code;
         if (string.IsNullOrEmpty(html) || html.Length <= maxLength)
             return html;
 

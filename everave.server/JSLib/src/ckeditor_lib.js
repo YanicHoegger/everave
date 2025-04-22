@@ -29,6 +29,8 @@
 	SimpleUploadAdapter
 } from 'ckeditor5';
 
+import SmileyPlugin from './smileys.js';
+
 export function initializeCKEditor(editorId, dotNetHelper) {
     ClassicEditor
         .create(document.querySelector(`#${editorId}`), {
@@ -60,7 +62,8 @@ export function initializeCKEditor(editorId, dotNetHelper) {
 				TableColumnResize,
 				TableToolbar,
 				TextTransformation,
-				Underline
+				Underline,
+				SmileyPlugin
 			],
 			toolbar: [
 				'undo',
@@ -83,7 +86,9 @@ export function initializeCKEditor(editorId, dotNetHelper) {
 				'numberedList',
 				'|',
 				'outdent',
-				'indent'
+				'indent',
+				'|',
+				'addSmiley'
 			],
 			heading: {
 				options: [
@@ -161,7 +166,10 @@ export function initializeCKEditor(editorId, dotNetHelper) {
 			},
             simpleUpload: {
 				uploadUrl: '/image/upload',
-            }
+			},
+			smilyes: {
+				smileySet: ['😊', '😂', '😍', '😎', '😢'] // Example configuration
+			}
         })
         .then(editor => {
             editor.model.document.on('change:data', () => {
