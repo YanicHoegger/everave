@@ -77,7 +77,6 @@ export function initializeCKEditor(editorId, dotNetHelper, smileys) {
 				'|',
 				'link',
 				'uploadImage',
-				'ckbox',
 				'insertTable',
 				'blockQuote',
 				'mediaEmbed',

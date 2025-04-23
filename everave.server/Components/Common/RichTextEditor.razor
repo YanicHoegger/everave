@@ -1,7 +1,7 @@
 ﻿@implements IDisposable
 @inject IJSRuntime JS
 
-<div>
+<div class="editor-container">
     <div id="@EditorId"></div>
 </div>
 
@@ -17,7 +17,7 @@
         if (firstRender)
         {
             _dotNetRef = DotNetObjectReference.Create(this);
-            await JS.InvokeVoidAsync("EditorLib.InitializeEditor", EditorId, _dotNetRef, new[] { "/smileys/1.gif", "/smileys/angel.gif" });
+            await JS.InvokeVoidAsync("EditorLib.InitializeEditor", EditorId, _dotNetRef, GetSmileys());
         }
     }
 
@@ -32,5 +32,18 @@
     {
         _dotNetRef?.Dispose();
         _dotNetRef = null;
+    }
+
+    private static IEnumerable<string> GetSmileys()
+    {
+        var smileysPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "smileys");
+
+        if (Directory.Exists(smileysPath))
+        {
+            return Directory.GetFiles(smileysPath, "*.gif")
+                .Select(file => $"/smileys/{Path.GetFileName(file)}");
+        }
+
+        return [];
     }
 }
