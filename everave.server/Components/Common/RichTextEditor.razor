@@ -17,7 +17,7 @@
         if (firstRender)
         {
             _dotNetRef = DotNetObjectReference.Create(this);
-            await JS.InvokeVoidAsync("EditorLib.InitializeEditor", EditorId, _dotNetRef);
+            await JS.InvokeVoidAsync("EditorLib.InitializeEditor", EditorId, _dotNetRef, new[] { "/smileys/1.gif", "/smileys/angel.gif" });
         }
     }
 

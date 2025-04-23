@@ -20,5 +20,9 @@ module.exports = {
         path: path.resolve(__dirname, '../wwwroot/js'),
         filename: "editor_lib.js",
         library: "EditorLib"
-    }
+    },
+    ////TODO: Remove
+    //optimization: {
+    //    minimize: false
+    //}
 };

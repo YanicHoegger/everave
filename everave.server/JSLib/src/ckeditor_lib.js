@@ -31,7 +31,7 @@
 
 import SmileyPlugin from './smileys.js';
 
-export function initializeCKEditor(editorId, dotNetHelper) {
+export function initializeCKEditor(editorId, dotNetHelper, smileys) {
     ClassicEditor
         .create(document.querySelector(`#${editorId}`), {
             licenseKey: 'GPL',
@@ -168,7 +168,7 @@ export function initializeCKEditor(editorId, dotNetHelper) {
 				uploadUrl: '/image/upload',
 			},
 			smilyes: {
-				smileySet: ['😊', '😂', '😍', '😎', '😢'] // Example configuration
+				smileySet: smileys
 			}
         })
         .then(editor => {

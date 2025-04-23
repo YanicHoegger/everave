@@ -1,8 +1,7 @@
 ﻿import {
     Plugin,
-    DropdownView,
-    ButtonView,
     IconEmoji,
+    View,
     createDropdown
 } from 'ckeditor5';
 
@@ -21,23 +20,39 @@ export default class SmileyPlugin extends Plugin {
                 icon: IconEmoji
             });
 
-            const items = smileySet.map(smiley => {
-                const button = new ButtonView(locale);
+            dropdown.render();
 
-                button.set({
-                    label: smiley,
-                    withText: true
+            smileySet.forEach(smileyPath => {
+                const smileyView = new View(locale);
+
+                smileyView.setTemplate({
+                    tag: 'img',
+                    attributes: {
+                        src: smileyPath,
+                        alt: 'Smiley',
+                        style: 'width: 32px; height: 32px; cursor: pointer; margin: 4px;',
+                        tabindex: '-1'
+                    }
                 });
 
-                button.on('execute', () => {
-                    console.log(`Selected smiley: ${smiley}`);
-                    alert(`You selected: ${smiley}`);
+                smileyView.on('render', () => {
+                    smileyView.element.addEventListener('click', () => {
+                        editor.model.change(writer => {
+                            const imgHtml = `<img src="${smileyPath}" alt="Smiley" style="width: 32px; height: 32px;">`;
+                            const viewFragment = editor.data.processor.toView(imgHtml);
+                            const modelFragment = editor.data.toModel(viewFragment);
+
+                            editor.model.insertContent(modelFragment, editor.model.document.selection);
+                        });
+                    });
                 });
 
-                return button;
+                smileyView.focus = () => {
+                    smileyView.element.focus();
+                };
+
+                dropdown.panelView.children.add(smileyView);
             });
-
-            dropdown.panelView.children.addMany(items);
 
             return dropdown;
         });
