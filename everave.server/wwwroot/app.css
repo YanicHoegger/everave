@@ -97,21 +97,6 @@ h1:focus {
     gap: 0.5rem; /* Consistent spacing between items */
 }
 
-.breadcrumb-item {
-    font-size: 1rem;
-    display: inline-block;
-    align-items: center;
-    margin: 0; /* Remove any default margins */
-}
-
-.breadcrumb-separator {
-    font-size: 1rem;
-    color: #666; /* Adjust color to match your theme */
-    display: flex;
-    align-items: center;
-    margin: 0; /* Remove any default margins */
-}
-
 .editor-container {
     min-height: 350px;
 }

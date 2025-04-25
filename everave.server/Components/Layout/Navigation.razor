@@ -6,27 +6,21 @@
 @inject IForumService ForumService
 @inject UserManager<ApplicationUser> UserManager
 
-<nav class="breadcrumb-nav">
+<nav class="breadcrumb" style="margin-bottom: 0px">
     @if (Breadcrumbs.Any())
     {
         @foreach (var breadcrumb in Breadcrumbs)
         {
-            <div class="breadcrumb-item">
+            <li class="breadcrumb-item @(breadcrumb.IsCurrent ? "active" : "")">
                 @if (breadcrumb.IsCurrent)
                 {
                     <span>@breadcrumb.Name</span>
                 }
                 else
                 {
-                    <a href="@breadcrumb.Url">@breadcrumb.Name</a>
+                    <a style="margin-left: 0px" href="@breadcrumb.Url">@breadcrumb.Name</a>
                 }
-            </div>
-            @if (!breadcrumb.IsCurrent)
-            {
-                <span class="breadcrumb-separator">
-                    <i class="bi bi-caret-right-fill"></i>
-                </span>
-            }
+            </li>
         }
     }
 </nav>
@@ -136,7 +130,7 @@
         }
         else
         {
-            Console.WriteLine("No match found.");
+            yield return CreateForum();
         }
     }
 
