@@ -18,55 +18,57 @@
 }
 else
 {
-    <AuthorizeView>
-        @if (!isAdding)
-        {
-            <button class="btn btn-primary" @onclick="AddEntry">Antworten</button>
-        }
-    </AuthorizeView>
-
-    <PageNavigation BaseUrl="@($"/topic/{id}")" CurrentPage="@GetCurrentPage()" TotalPages="@totalPages" />
-
-    foreach (var entry in entries)
-    {
-        <a id="@entry.EntryId">
-            <div class="entry-card d-flex mb-4">
-                <!-- Creator Information -->
-                <div class="creator-info text-center me-3">
-                    <img src="@entry.CreatorProfilePictureUrl" alt="Profile Picture" class="profile-picture mb-2" />
-                    <p class="creator-name">@entry.CreatorName</p>
-                </div>
-
-                <!-- Entry Content -->
-                <div class="entry-content flex-grow-1">
-                    <div class="entry-header text-muted mb-2">
-                        <small>Erstellt am: @entry.CreatedAt.PrintCET()</small>
-                    </div>
-                    <div class="entry-body ck-content">
-                        @((MarkupString)entry.HtmlContent)
-                    </div>
-                </div>
-            </div>
-        </a>
-    }
-
-    if (isAdding)
-    {
-        <div class="editor">
-            <RichTextEditor @bind-Value="newContent" />
-            <button class="btn btn-success mt-2" @onclick="SaveEntry">Speichern</button>
+    <div class="card sticky-top">
+        <div class="card-header bg-primary text-white  d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">@topicTitle</h5>
+            <AuthorizeView>
+                @if (!isAdding)
+                {
+                    <button class="btn btn-sm btn-light" @onclick="AddEntry">Antworten</button>
+                }
+            </AuthorizeView>
+            <PageNavigation BaseUrl="@($"/topic/{id}")" CurrentPage="@GetCurrentPage()" TotalPages="@totalPages" />
         </div>
-        <div id="richTextEditor"></div>
-    }
-    else
-    {
-        <AuthorizeView>
-            <button class="btn btn-primary" @onclick="AddEntry">Antworten</button>
-        </AuthorizeView>
-    }
+    </div>
+    <div class="overflow-auto" style="max-height: calc(100vh - 140px);">
+
+        @foreach (var entry in entries)
+        {
+            <a id="@entry.EntryId">
+                <div class="entry-card d-flex mb-4">
+                    <!-- Creator Information -->
+                    <div class="creator-info text-center me-3">
+                        <img src="@entry.CreatorProfilePictureUrl" alt="Profile Picture" class="profile-picture mb-2" />
+                        <p class="creator-name">@entry.CreatorName</p>
+                    </div>
+
+                    <!-- Entry Content -->
+                    <div class="entry-content flex-grow-1">
+                        <div class="entry-header text-muted mb-2">
+                            <small>Erstellt am: @entry.CreatedAt.PrintCET()</small>
+                        </div>
+                        <div class="entry-body ck-content">
+                            @((MarkupString)entry.HtmlContent)
+                        </div>
+                    </div>
+                </div>
+            </a>
+        }
+
+        @if (isAdding)
+        {
+            <div class="editor">
+                <RichTextEditor @bind-Value="newContent" />
+                <button class="btn btn-success mt-2" @onclick="SaveEntry">Speichern</button>
+            </div>
+            <div id="@RichTextEditorScrollId"></div>
+        }
+    </div>
 }
 
 @code {
+    private const string RichTextEditorScrollId = "richTextEditorScroll";
+
     [Parameter]
     public string id { get; set; } = default!;
     [Parameter]
@@ -74,6 +76,7 @@ else
 
     private int totalPages;
 
+    private string topicTitle;
     private List<EntryDisplay>? entries;
     private bool isAdding = false;
     private bool needsScrolling = true;
@@ -82,6 +85,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        topicTitle = (await ForumService.GetTopicByIdAsync(new ObjectId(id)).ConfigureAwait(false)).Title;
         var rawEntries = await ForumService.GetEntriesByTopicIdAsync(new ObjectId(id), GetCurrentPage()).ConfigureAwait(false);
         entries = [];
 
@@ -125,7 +129,7 @@ else
         if (isAdding && needsScrolling)
         {
             needsScrolling = false;
-            await JSRuntime.InvokeVoidAsync("scrollToElement", "richTextEditor").ConfigureAwait(false);
+            await JSRuntime.InvokeVoidAsync("scrollToElement", RichTextEditorScrollId).ConfigureAwait(false);
         }
         else if (!string.IsNullOrEmpty(selectedEntryId) && needsScrolling)
         {

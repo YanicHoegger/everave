@@ -39,18 +39,24 @@ else
                     {
                         <tr>
                             <td>
-                                <a href="@($"/topic/{topic.Topic.Id}")" class="fw-bold text-decoration-none">
-                                    @topic.Topic.Title
-                                </a><br />
-                                <small class="text-muted">@topic.Topic.CreatedAt</small>
-                                <PageNavigation BaseUrl="@($"/topic/{topic.Topic.Id}")" 
-                                                CurrentPage="1" 
-                                                TotalPages="@(topic.Topic.NumberOfEntries/ForumService.PageSize)"
-                                                DisableNavigationToCurrent="false"/>
+                                <div class="d-flex align-items">
+                                    <div>
+                                        <a href="@($"/topic/{topic.Topic.Id}")" class="fw-bold text-decoration-none">
+                                            @topic.Topic.Title
+                                        </a><br />
+                                        <small class="text-muted">@topic.Topic.CreatedAt</small>
+                                    </div>
+                                    <div class="ms-auto">
+                                        <PageNavigation BaseUrl="@($"/topic/{topic.Topic.Id}")"
+                                                        CurrentPage="1"
+                                                        TotalPages="@(topic.Topic.NumberOfEntries / ForumService.PageSize)"
+                                                        DisableNavigationToCurrent="false" />
+                                    </div>
+                                </div>
                             </td>
                             <td>@topic.Topic.NumberOfEntries</td>
                             <td>
-                                <LastEntryDetails EntryId="@(topic.Topic.LastEntry)" ShowTopic="false"/>
+                                <LastEntryDetails EntryId="@(topic.Topic.LastEntry)" ShowTopic="false" />
                             </td>
                             <AuthorizeView Roles="@ApplicationUser.AdminRole">
                                 <Delete Title="Thema löschen"
