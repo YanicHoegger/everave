@@ -108,7 +108,7 @@ else
             var entry = new Entry
                 {
                     HtmlContent = Model.FirstEntry,
-                    CreatedAt = DateTime.UtcNow,
+                    CreatedAt = DateTime.Now,
                     TopicId = topicId,
                     UserId = (ObjectId)MongoUserId!
                 };

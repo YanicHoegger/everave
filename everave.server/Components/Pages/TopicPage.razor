@@ -40,7 +40,7 @@ else
                 <!-- Entry Content -->
                 <div class="entry-content flex-grow-1">
                     <div class="entry-header text-muted mb-2">
-                        <small>Created at: @entry.CreatedAt.ToString("g")</small>
+                        <small>Erstellt am: @entry.CreatedAt.PrintCET()</small>
                     </div>
                     <div class="entry-body ck-content">
                         @((MarkupString)entry.HtmlContent)
@@ -141,7 +141,7 @@ else
             var entry = new Entry
                 {
                     HtmlContent = newContent,
-                    CreatedAt = DateTime.UtcNow,
+                    CreatedAt = DateTime.Now,
                     TopicId = new ObjectId(id),
                     UserId = (ObjectId)(await AuthProvider.GetUserId())!
                 };

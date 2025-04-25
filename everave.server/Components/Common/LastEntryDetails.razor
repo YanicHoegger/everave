@@ -8,16 +8,16 @@
 {
     <div class="entry-preview" style="cursor: pointer;">
         <div class="entry-content" @onclick="NavigateToEntry">
-            <p>@lastEntryDetails!.HtmlContent</p>
+            <p style="margin-bottom: 2px;">@lastEntryDetails!.HtmlContent</p>
         </div>
         @if (ShowTopic)
         {
             <div class="entry-topic" @onclick="NavigateToTopic">
-                <strong>@lastEntryDetails.TopicTitle</strong>
+                <small>@lastEntryDetails.TopicTitle</small>
             </div>
         }
         <div class="entry-meta text-muted">
-            <small>Created on @(lastEntryDetails.CreatedAt.ToString("g")) by <UserLink UserId="@lastEntryDetails!.Author.ToString()" /></small>
+            <small>Am @(lastEntryDetails.CreatedAt.PrintCET()) von <UserLink UserId="@lastEntryDetails!.Author.ToString()" /></small>
         </div>
     </div>
 }
@@ -56,10 +56,12 @@ else
 
     private static string TruncateHtml(string html)
     {
-        const int maxLength = 100;
+        const int maxLength = 30;
         if (html.Contains("<"))
             html = Uglify.HtmlToText(html).Code;
-        if (string.IsNullOrEmpty(html) || html.Length <= maxLength)
+        if (string.IsNullOrWhiteSpace(html))
+            return "...";
+        if (html.Length <= maxLength)
             return html;
 
         return html[..maxLength] + "...";

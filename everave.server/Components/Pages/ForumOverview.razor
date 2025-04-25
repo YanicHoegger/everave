@@ -1,5 +1,5 @@
 ﻿@page "/forums"
-@rendermode InteractiveServer
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
 @using everave.server.Forum
 @using everave.server.UserManagement
 @using Microsoft.AspNetCore.Components.Authorization
