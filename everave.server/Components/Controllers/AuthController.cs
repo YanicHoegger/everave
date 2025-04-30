@@ -1,7 +1,7 @@
-using everave.server.Components.Layout;
 using everave.server.UserManagement;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using System.ComponentModel.DataAnnotations;
 
 namespace everave.server.Components.Controllers;
 
@@ -9,7 +9,7 @@ namespace everave.server.Components.Controllers;
 public class AuthController(SignInManager<ApplicationUser> signInManager) : Controller
 {
     [HttpPost("login")]
-    public async Task<IActionResult> Login([FromForm] Login.LoginModel model, [FromQuery] string? returnUrl)
+    public async Task<IActionResult> Login([FromForm] LoginModel model, [FromQuery] string? returnUrl)
     {
         var result = await signInManager.PasswordSignInAsync(
             model.UserName, model.Password, model.IsPersistent, lockoutOnFailure: false);
@@ -27,5 +27,16 @@ public class AuthController(SignInManager<ApplicationUser> signInManager) : Cont
     {
         await signInManager.SignOutAsync();
         return Redirect("/");
+    }
+
+    public class LoginModel
+    {
+        [Required]
+        public string UserName { get; set; } = string.Empty;
+
+        [Required]
+        public string Password { get; set; } = string.Empty;
+
+        public bool IsPersistent { get; set; } = false;
     }
 }

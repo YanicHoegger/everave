@@ -1,0 +1,45 @@
+﻿@rendermode InteractiveServer
+
+<div class="d-flex align-items-center position-relative">
+    <button class="btn btn-outline-primary rounded-circle" @onclick="TogglePopup" style="width: 40px; height: 40px;" id="account-button">
+        <i class="bi bi-person"></i> 
+    </button>
+
+    @if (isPopupVisible)
+    {
+        <div class="popup-container shadow p-3 bg-white rounded" id="account-popup" @onclick:stopPropagation>
+            <Login/>
+        </div>
+    }
+</div>
+
+@code {
+    private bool isPopupVisible = false;
+
+    private void TogglePopup()
+    {
+        isPopupVisible = !isPopupVisible;
+    }
+
+    [Inject]
+    private IJSRuntime JSRuntime { get; set; } = default!;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Register a click event listener to detect clicks outside the popup
+            await JSRuntime.InvokeVoidAsync("registerOutsideClickHandler",
+                DotNetObjectReference.Create(this),
+                "#account-popup",
+                "#account-button");
+        }
+    }
+
+    [JSInvokable]
+    public void ClosePopup()
+    {
+        isPopupVisible = false;
+        StateHasChanged();
+    }
+}

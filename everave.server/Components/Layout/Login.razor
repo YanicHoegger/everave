@@ -1,57 +1,46 @@
-﻿@using System.ComponentModel.DataAnnotations
-@using everave.server.UserManagement
+﻿@rendermode InteractiveServer
 @using Microsoft.AspNetCore.Components.Authorization
 @inject AuthenticationStateProvider AuthProvider
 @inject NavigationManager Navigation
 
-<div class="d-flex align-items-center">
-    <AuthorizeView>
-        <Authorized>
-            <span class="me-2">Angemeldet als <strong>@userName</strong></span>
-            <form action="/auth/logout" method="post" style="display:inline;">
-                <button type="submit" class="btn btn-outline-danger btn-sm">Logout</button>
-            </form>
-        </Authorized>
+<AuthorizeView>
+    <Authorized>
+        <span class="me-2">Angemeldet als <strong>@userName</strong></span>
+        <form action="/auth/logout" method="post" style="display:inline;">
+            <AntiforgeryToken />
+            <button type="submit" class="btn btn-outline-danger btn-sm">Logout</button>
+        </form>
+    </Authorized>
 
-        <NotAuthorized Context="authContext">
-            <EditForm Action="@($"/auth/login?returnUrl={Uri.EscapeDataString(Navigation.Uri)}")" Method="post" Model="@loginModel">
-                <DataAnnotationsValidator />
-
-                <div class="d-flex align-items-end flex-wrap gap-2">
-                    <div>
-                        <InputText id="UserName" name="UserName" @bind-Value="loginModel.UserName"
-                                   class="form-control form-control-sm"
-                                   placeholder="Benutzername" />
-                    </div>
-
-                    <div>
-                        <InputText id="Password" name="Password" @bind-Value="loginModel.Password"
-                                   class="form-control form-control-sm"
-                                   type="password"
-                                   placeholder="Passwort" />
-                    </div>
-
-                    <div class="form-check small align-self-center ms-1">
-                        <InputCheckbox id="IsPersistent" name="IsPersistent" @bind-Value="loginModel.IsPersistent"
-                                       class="form-check-input" />
-                        <label class="form-check-label" for="IsPersistent">Merken</label>
-                    </div>
-
-                    <button type="submit" class="btn btn-sm btn-primary">Login</button>
-
-                    <a href="/register" class="btn btn-link btn-sm">Registrieren</a>
+    <NotAuthorized Context="authContext">
+        <form action="@($"/auth/login?returnUrl={Uri.EscapeDataString(Navigation.Uri)}")" method="post">
+            <AntiforgeryToken />
+            <div class="d-flex align-items-end flex-wrap gap-2">
+                <div>
+                    <input id="UserName" name="UserName" class="form-control form-control-sm"
+                           placeholder="Benutzername" required />
                 </div>
-            </EditForm>
-        </NotAuthorized>
-    </AuthorizeView>
 
-    <AuthorizeView Roles="@ApplicationUser.AdminRole">
-        <a href="/admin" class="btn btn-link btn-sm">Administration</a>
-    </AuthorizeView>
-</div>
+                <div>
+                    <input id="Password" name="Password" class="form-control form-control-sm"
+                           type="password" placeholder="Passwort" required />
+                </div>
+
+                <div class="form-check small align-self-center ms-1">
+                    <input id="IsPersistent" name="IsPersistent" type="checkbox" class="form-check-input" />
+                    <label class="form-check-label" for="IsPersistent">Merken</label>
+                </div>
+
+                <button type="submit" class="btn btn-sm btn-primary">Login</button>
+
+                <a href="/register" class="btn btn-link btn-sm">Registrieren</a>
+            </div>
+        </form>
+    </NotAuthorized>
+</AuthorizeView>
+
 
 @code {
-    private LoginModel loginModel = new();
     private string? userName;
 
     protected override async Task OnInitializedAsync()
@@ -67,16 +56,5 @@
         {
             userName = user.Identity.Name;
         }
-    }
-
-    public class LoginModel
-    {
-        [Required]
-        public string UserName { get; set; } = string.Empty;
-
-        [Required]
-        public string Password { get; set; } = string.Empty;
-
-        public bool IsPersistent { get; set; } = false;
     }
 }
