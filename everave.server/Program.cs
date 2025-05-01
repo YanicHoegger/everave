@@ -1,8 +1,10 @@
 using AspNetCore.Identity.Mongo;
 using AspNetCore.Identity.Mongo.Model;
+using Azure.Storage.Blobs;
 using everave.server.Components;
 using everave.server.Forum;
 using everave.server.Import;
+using everave.server.Services;
 using everave.server.UserManagement;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -17,10 +19,24 @@ builder.Services.AddRazorComponents()
 builder.Services.AddControllers();
 builder.Services.AddHttpClient();
 
-builder.Services.AddHttpClient("ImageService", client =>
+
+var useAzureBlobStorage = builder.Configuration.GetValue<bool>("UseAzureBlobStorage");
+
+if (useAzureBlobStorage)
 {
-    client.BaseAddress = new Uri("http://imagehandler:8080");
-});
+    var blobConnectionString = builder.Configuration["BlobStorageConnectionString"];
+    builder.Services.AddSingleton(new BlobServiceClient(blobConnectionString));
+    builder.Services.AddSingleton<IImageStorageService, AzureBlobStorageService>();
+}
+else
+{
+    builder.Services.AddHttpClient("ImageService", client =>
+    {
+        client.BaseAddress = new Uri("http://imagehandler:8080");
+    });
+
+    builder.Services.AddSingleton<IImageStorageService, LocalImageStorageService>();
+}
 
 builder.Services.AddSingleton<IForumService, ForumService>();
 builder.Services.AddScoped<Importer>();
