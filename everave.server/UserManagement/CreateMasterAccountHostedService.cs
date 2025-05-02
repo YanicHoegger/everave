@@ -3,10 +3,11 @@ using Microsoft.AspNetCore.Identity;
 
 namespace everave.server.UserManagement;
 
-public class CreateMasterAccountHostedService(IServiceProvider serviceProvider, IConfiguration configuration) : IHostedService
+public class CreateMasterAccountHostedService(IServiceProvider serviceProvider, IConfiguration configuration, ILogger<CreateMasterAccountHostedService> logger) : IHostedService
 {
     public async Task StartAsync(CancellationToken cancellationToken)
     {
+        logger.LogInformation("Creating master account...");
         using var scope = serviceProvider.CreateScope();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<MongoRole>>();
@@ -16,11 +17,14 @@ public class CreateMasterAccountHostedService(IServiceProvider serviceProvider, 
             await roleManager.CreateAsync(new MongoRole(ApplicationUser.AdminRole));
         }
 
-        var username = configuration["MasterAccount:Username"];
-        var password = configuration["MasterAccount:Password"];
+        const string masterAccountUsername = "MasterAccount:Username";
+        var username = configuration[masterAccountUsername];
+        const string masterAccountPassword = "MasterAccount:Password";
+        var password = configuration[masterAccountPassword];
 
         if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
         {
+            logger.LogInformation($"{masterAccountUsername} or {masterAccountPassword} is not set");
             return;
         }
 
@@ -37,7 +41,12 @@ public class CreateMasterAccountHostedService(IServiceProvider serviceProvider, 
             if (result.Succeeded)
             {
                 await userManager.AddToRoleAsync(masterAccount, ApplicationUser.AdminRole);
+                logger.LogInformation($"Master account created with username {username}");
             }
+        }
+        else
+        {
+            logger.LogInformation("Master account already exists");
         }
     }
 

@@ -12,6 +12,8 @@ using MongoDB.Driver;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Logging.AddConsole();
+
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
@@ -41,11 +43,10 @@ else
 builder.Services.AddSingleton<IForumService, ForumService>();
 builder.Services.AddScoped<Importer>();
 
-const string mongodb = "MongoDb";
+var connectionString = builder.Configuration["MongoDbConnectionString"];
 builder.Services.AddSingleton(sp =>
 {
-    var config = sp.GetService<IConfiguration>() ?? throw new InvalidOperationException($"{nameof(IConfiguration)} could not be found");
-    var client = new MongoClient(config.GetConnectionString(mongodb));
+    var client = new MongoClient(connectionString);
     return client.GetDatabase("everave");
 });
 
@@ -56,7 +57,7 @@ builder.Services.AddIdentityMongoDbProvider<ApplicationUser, MongoRole>(identity
     identityOptions.Password.RequiredLength = 6;
 }, mongoIdentityOptions =>
 {
-    mongoIdentityOptions.ConnectionString = builder.Configuration.GetConnectionString(mongodb);
+    mongoIdentityOptions.ConnectionString = connectionString;
 })
 .AddRoles<MongoRole>();
 

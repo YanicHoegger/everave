@@ -10,6 +10,7 @@ services:
       - imagehandler
     environment:
       - UseAzureBlobStorage=false
+      - MongoDbConnectionString=mongodb://mongodb:27017
 
   imagehandler:
     image: imagehandler
