@@ -10,6 +10,8 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using MongoDB.Driver;
 
+Console.WriteLine("Starting eve&rave server");
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Logging.AddConsole();
@@ -26,12 +28,14 @@ var useAzureBlobStorage = builder.Configuration.GetValue<bool>("UseAzureBlobStor
 
 if (useAzureBlobStorage)
 {
+    Console.WriteLine("Using azure blob storage");
     var blobConnectionString = builder.Configuration["BlobStorageConnectionString"];
     builder.Services.AddSingleton(new BlobServiceClient(blobConnectionString));
     builder.Services.AddSingleton<IImageStorageService, AzureBlobStorageService>();
 }
 else
 {
+    Console.WriteLine("Using image service");
     builder.Services.AddHttpClient("ImageService", client =>
     {
         client.BaseAddress = new Uri("http://imagehandler:8080");
@@ -44,7 +48,7 @@ builder.Services.AddSingleton<IForumService, ForumService>();
 builder.Services.AddScoped<Importer>();
 
 var connectionString = builder.Configuration["MongoDbConnectionString"];
-builder.Services.AddSingleton(sp =>
+builder.Services.AddSingleton(_ =>
 {
     var client = new MongoClient(connectionString);
     return client.GetDatabase("everave");
