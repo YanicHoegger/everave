@@ -1,68 +1,21 @@
 ﻿@page "/register"
 @rendermode InteractiveServer
-@using System.ComponentModel.DataAnnotations
-@using everave.server.UserManagement
-@using Microsoft.AspNetCore.Identity
-@inject UserManager<ApplicationUser> UserManager
-@inject NavigationManager Navigation
 
-<EditForm Model="@registerModel" OnValidSubmit="HandleRegister" FormName="registerForm">
-    <DataAnnotationsValidator />
-    <ValidationSummary />
-
+<form action="/auth/register" method="post">
     <div class="mb-3">
-        <label>Benutzername</label>
-        <InputText @bind-Value="registerModel.UserName" class="form-control" />
+        <label for="UserName">Benutzername</label>
+        <input id="UserName" name="UserName" class="form-control" required />
     </div>
 
     <div class="mb-3">
-        <label>Password</label>
-        <InputText @bind-Value="registerModel.Password" type="password" class="form-control" />
+        <label for="Password">Password</label>
+        <input id="Password" name="Password" type="password" class="form-control" required minlength="6" />
     </div>
 
     <div class="mb-3">
-        <label>Confirm Password</label>
-        <InputText @bind-Value="registerModel.ConfirmPassword" type="password" class="form-control" />
+        <label for="ConfirmPassword">Confirm Password</label>
+        <input id="ConfirmPassword" name="ConfirmPassword" type="password" class="form-control" required />
     </div>
 
     <button class="btn btn-success" type="submit">Registrieren</button>
-</EditForm>
-
-@code {
-    private RegisterModel registerModel = new();
-
-    private async Task HandleRegister()
-    {
-        if (registerModel.Password != registerModel.ConfirmPassword)
-        {
-            // Add custom error if needed
-            return;
-        }
-
-        var user = new ApplicationUser { UserName = registerModel.UserName };
-        var result = await UserManager.CreateAsync(user, registerModel.Password);
-
-        if (result.Succeeded)
-        {
-            // await SignInManager.SignInAsync(user, isPersistent: false);
-            Navigation.NavigateTo("/");
-        }
-        else
-        {
-            // Handle errors
-        }
-    }
-
-    public class RegisterModel
-    {
-        [Required]
-        public string UserName { get; set; } = string.Empty;
-
-        [Required]
-        [MinLength(6)]
-        public string Password { get; set; } = string.Empty;
-
-        [Required]
-        public string ConfirmPassword { get; set; } = string.Empty;
-    }
-}
+</form>

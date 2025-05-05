@@ -6,7 +6,7 @@ using System.ComponentModel.DataAnnotations;
 namespace everave.server.Components.Controllers;
 
 [Route("auth")]
-public class AuthController(SignInManager<ApplicationUser> signInManager) : Controller
+public class AuthController(SignInManager<ApplicationUser> signInManager, UserManager<ApplicationUser> userManager) : Controller
 {
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromForm] LoginModel model, [FromQuery] string? returnUrl)
@@ -29,6 +29,26 @@ public class AuthController(SignInManager<ApplicationUser> signInManager) : Cont
         return Redirect("/");
     }
 
+    [HttpPost("register")]
+    public async Task<IActionResult> Register([FromForm] RegisterModel model)
+    {
+        if (model.Password != model.ConfirmPassword)
+        {
+            return BadRequest("Passwords do not match.");
+        }
+
+        var user = new ApplicationUser { UserName = model.UserName };
+        var result = await userManager.CreateAsync(user, model.Password);
+
+        if (result.Succeeded)
+        {
+            await signInManager.SignInAsync(user, isPersistent: false);
+            return Redirect($"/user-details/{user.Id}");
+        }
+
+        return BadRequest($"Registration failed. {string.Join(", ", result.Errors)}");
+    }
+
     public class LoginModel
     {
         [Required]
@@ -38,5 +58,18 @@ public class AuthController(SignInManager<ApplicationUser> signInManager) : Cont
         public string Password { get; set; } = string.Empty;
 
         public bool IsPersistent { get; set; } = false;
+    }
+
+    public class RegisterModel
+    {
+        [Required]
+        public string UserName { get; set; } = string.Empty;
+
+        [Required]
+        [MinLength(6)]
+        public string Password { get; set; } = string.Empty;
+
+        [Required]
+        public string ConfirmPassword { get; set; } = string.Empty;
     }
 }

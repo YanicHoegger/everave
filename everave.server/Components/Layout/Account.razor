@@ -1,4 +1,7 @@
-﻿@rendermode InteractiveServer
+﻿@using Microsoft.AspNetCore.Components.Authorization
+@rendermode InteractiveServer
+@inject AuthenticationStateProvider AuthProvider
+@inject NavigationManager Navigation
 
 <div class="d-flex align-items-center position-relative">
     <button class="btn btn-outline-primary rounded-circle" @onclick="TogglePopup" style="width: 40px; height: 40px;" id="account-button">
@@ -8,21 +11,55 @@
     @if (isPopupVisible)
     {
         <div class="popup-container shadow p-3 bg-white rounded" id="account-popup" @onclick:stopPropagation>
-            <Login/>
+            <AuthorizeView>
+                <Authorized>
+                    <span class="me-2">Angemeldet als <strong>@userName</strong></span>
+                    <form action="/auth/logout" method="post" style="display:inline;">
+                        <AntiforgeryToken />
+                        <button type="submit" class="btn btn-outline-danger btn-sm">Logout</button>
+                    </form>
+                </Authorized>
+
+                <NotAuthorized Context="authContext">
+                    <form action="@($"/auth/login?returnUrl={Uri.EscapeDataString(Navigation.Uri)}")" method="post">
+                        <AntiforgeryToken />
+                        <div class="d-flex align-items-end flex-wrap gap-2">
+                            <div>
+                                <input id="UserName" name="UserName" class="form-control form-control-sm"
+                                       placeholder="Benutzername" required />
+                            </div>
+
+                            <div>
+                                <input id="Password" name="Password" class="form-control form-control-sm"
+                                       type="password" placeholder="Passwort" required />
+                            </div>
+
+                            <div class="form-check small align-self-center ms-1">
+                                <input id="IsPersistent" name="IsPersistent" type="checkbox" class="form-check-input" />
+                                <label class="form-check-label" for="IsPersistent">Merken</label>
+                            </div>
+
+                            <button type="submit" class="btn btn-sm btn-primary">Login</button>
+                        </div>
+                    </form>
+                    <a href="/register" class="btn btn-link btn-sm" @onclick="TogglePopup">Registrieren</a>
+                </NotAuthorized>
+            </AuthorizeView>
         </div>
     }
 </div>
 
 @code {
     private bool isPopupVisible = false;
+    private string? userName;
+
+    [Inject]
+    private IJSRuntime JSRuntime { get; set; } = default!;
 
     private void TogglePopup()
     {
         isPopupVisible = !isPopupVisible;
     }
-
-    [Inject]
-    private IJSRuntime JSRuntime { get; set; } = default!;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -34,6 +71,8 @@
                 "#account-popup",
                 "#account-button");
         }
+
+        await CheckUser();
     }
 
     [JSInvokable]
@@ -41,5 +80,15 @@
     {
         isPopupVisible = false;
         StateHasChanged();
+    }
+
+    private async Task CheckUser()
+    {
+        var authState = await AuthProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            userName = user.Identity.Name;
+        }
     }
 }
