@@ -52,10 +52,10 @@ public class Importer(IForumService forumService, UserManager<ApplicationUser> u
 
                     foreach (var topic in forum.Topics)
                     {
-                        var author = await userManager.FindByNameAsync(topic.Author.Username);
+                        var author = await userManager.FindByNameAsync(topic.Author);
                         if (author == null)
                         {
-                            throw new Exception($"Author {topic.Author.Username} not found.");
+                            throw new Exception($"Author {topic.Author} not found.");
                         }
 
                         var newTopic = new Topic
@@ -70,10 +70,10 @@ public class Importer(IForumService forumService, UserManager<ApplicationUser> u
 
                         foreach (var entry in topic.Entries)
                         {
-                            var entryAuthor = await userManager.FindByNameAsync(entry.Author.Username);
+                            var entryAuthor = await userManager.FindByNameAsync(entry.Author);
                             if (entryAuthor == null)
                             {
-                                throw new Exception($"Entry author {entry.Author.Username} not found.");
+                                throw new Exception($"Entry author {entry.Author} not found.");
                             }
 
                             var newEntry = new Entry

@@ -49,7 +49,7 @@ else
                                     <div class="ms-auto">
                                         <PageNavigation BaseUrl="@($"/topic/{topic.Topic.Id}")"
                                                         CurrentPage="1"
-                                                        TotalPages="@(topic.Topic.NumberOfEntries / ForumService.PageSize)"
+                                                        TotalPages="@(GetNumberOfPages(topic.Topic))"
                                                         DisableNavigationToCurrent="false" />
                                     </div>
                                 </div>
@@ -113,6 +113,11 @@ else
     {
         public Topic Topic { get; set; } = new();
         public ObjectId? LastEntry { get; set; }
+    }
+
+    private int GetNumberOfPages(Topic topic)
+    {
+        return (int)Math.Ceiling(topic.NumberOfEntries / (double)ForumService.PageSize);
     }
 
     private int GetCurrentPage()
