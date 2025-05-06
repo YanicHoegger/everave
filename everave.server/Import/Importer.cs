@@ -15,8 +15,7 @@ public class Importer(IForumService forumService, UserManager<ApplicationUser> u
         {
             var applicationUser = new ApplicationUser
             {
-                UserName = user.Username,
-                DisplayName = user.Username
+                UserName = user.Username
             };
 
             var decryptedPassword = StringEncryption.Decrypt(user.EncryptedPassword, passphrase);

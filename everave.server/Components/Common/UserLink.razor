@@ -11,7 +11,8 @@
 }
 
 @code {
-    [Parameter] public string UserId { get; set; } = string.Empty;
+    [Parameter, EditorRequired] 
+    public string UserId { get; set; }
 
     private ApplicationUser? user;
 

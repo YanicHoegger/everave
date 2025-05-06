@@ -1,4 +1,6 @@
 ﻿@using Microsoft.AspNetCore.Components.Authorization
+@using everave.server.Components.Common
+@using everave.server.UserManagement
 @rendermode InteractiveServer
 @inject AuthenticationStateProvider AuthProvider
 @inject NavigationManager Navigation
@@ -13,7 +15,7 @@
         <div class="popup-container shadow p-3 bg-white rounded" id="account-popup" @onclick:stopPropagation>
             <AuthorizeView>
                 <Authorized>
-                    <span class="me-2">Angemeldet als <strong>@userName</strong></span>
+                    <span class="me-2">Angemeldet als <UserLink UserId="@userIdentity"></UserLink></span>
                     <form action="/auth/logout" method="post" style="display:inline;">
                         <AntiforgeryToken />
                         <button type="submit" class="btn btn-outline-danger btn-sm">Logout</button>
@@ -51,7 +53,7 @@
 
 @code {
     private bool isPopupVisible = false;
-    private string? userName;
+    private string? userIdentity;
 
     [Inject]
     private IJSRuntime JSRuntime { get; set; } = default!;
@@ -84,11 +86,6 @@
 
     private async Task CheckUser()
     {
-        var authState = await AuthProvider.GetAuthenticationStateAsync();
-        var user = authState.User;
-        if (user.Identity?.IsAuthenticated == true)
-        {
-            userName = user.Identity.Name;
-        }
+        userIdentity = (await AuthProvider.GetUserId())?.ToString();
     }
 }

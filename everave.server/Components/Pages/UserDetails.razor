@@ -1,8 +1,13 @@
 ﻿@page "/user-details/{UserId}"
+@rendermode InteractiveServer
+@using everave.server.Components.Controllers
+@using everave.server.Services
 @using Microsoft.AspNetCore.Identity
 @using everave.server.UserManagement
+@using Microsoft.AspNetCore.Components.Authorization
 @inject UserManager<ApplicationUser> UserManager
-
+@inject AuthenticationStateProvider AuthStateProvider
+@inject IImageStorageService ImageStorageService
 
 @if (user == null)
 {
@@ -10,30 +15,67 @@
 }
 else
 {
-    <h3>Profil von @user.UserName</h3>
-
     <div class="card">
         <div class="card-header">
             <h5>@user.UserName</h5>
         </div>
         <div class="card-body">
-            <p><strong>Email:</strong> @user.Email</p>
+            <div class="d-flex align-items-end">
+                <img src="@ProfilePictureUrl" alt="Profile Picture" class="img-thumbnail" style="max-width: 200px;" />
+                @if (isCurrentUser)
+                {
+                    <div class="ms-3">
+                        <label class="btn btn-primary">
+                            Avatar wechseln
+                            <InputFile OnChange="HandleImageUpload" style="display: none;" />
+                        </label>
+                    </div>
+                }
+            </div>
         </div>
     </div>
 }
 
 @code {
-    [Parameter] public string UserId { get; set; } = string.Empty;
+    [Parameter]
+    public string UserId { get; set; } = string.Empty;
+
+    private const long MaxAllowedSize = 10485760; // 10 MB
 
     private ApplicationUser? user;
-    private IList<string>? roles;
+    private bool isCurrentUser;
+
+    private string ProfilePictureUrl => string.IsNullOrEmpty(user?.ProfilePictureUrl)
+        ? "/no_avatar.gif"
+        : user.ProfilePictureUrl;
 
     protected override async Task OnParametersSetAsync()
     {
         if (!string.IsNullOrWhiteSpace(UserId))
         {
             user = await UserManager.FindByIdAsync(UserId);
-            roles = user != null ? await UserManager.GetRolesAsync(user) : new List<string>();
+            var currentUser = await AuthStateProvider.GetUserId();
+            isCurrentUser = currentUser == user?.Id;
+        }
+    }
+
+    private async Task HandleImageUpload(InputFileChangeEventArgs e)
+    {
+        if (e.File != null && user != null)
+        {
+            var fileName = $"{user.UserName}_{Guid.NewGuid()}{Path.GetExtension(e.File.Name)}";
+            await using var stream = e.File.OpenReadStream(maxAllowedSize: MaxAllowedSize);
+
+            await using var resizedStream = await ImageProcessingHelper
+                .ResizeImageAsync(stream, 200, 200).ConfigureAwait(false);
+
+            var success = await ImageStorageService.UploadImageAsync(resizedStream, fileName);
+
+            if (success)
+            {
+                user.ProfilePictureUrl = $"/image/{fileName}";
+                await UserManager.UpdateAsync(user);
+            }
         }
     }
 }
