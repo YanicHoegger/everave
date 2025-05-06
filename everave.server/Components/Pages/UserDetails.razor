@@ -1,5 +1,6 @@
 ﻿@page "/user-details/{UserId}"
 @rendermode InteractiveServer
+@using everave.server.Components.Common
 @using everave.server.Components.Controllers
 @using everave.server.Services
 @using Microsoft.AspNetCore.Identity
@@ -45,9 +46,7 @@ else
     private ApplicationUser? user;
     private bool isCurrentUser;
 
-    private string ProfilePictureUrl => string.IsNullOrEmpty(user?.ProfilePictureUrl)
-        ? "/no_avatar.gif"
-        : user.ProfilePictureUrl;
+    private string ProfilePictureUrl => user.GetProfilePictureUrl();
 
     protected override async Task OnParametersSetAsync()
     {

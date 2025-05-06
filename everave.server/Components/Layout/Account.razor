@@ -1,13 +1,32 @@
 ﻿@using Microsoft.AspNetCore.Components.Authorization
 @using everave.server.Components.Common
 @using everave.server.UserManagement
+@using Microsoft.AspNetCore.Identity
 @rendermode InteractiveServer
 @inject AuthenticationStateProvider AuthProvider
 @inject NavigationManager Navigation
+@inject UserManager<ApplicationUser> UserManager
 
 <div class="d-flex align-items-center position-relative">
-    <button class="btn btn-outline-primary rounded-circle" @onclick="TogglePopup" style="width: 40px; height: 40px;" id="account-button">
-        <i class="bi bi-person"></i> 
+    <button class="btn btn-outline-primary rounded-circle d-flex justify-content-center align-items-center p-0" 
+            @onclick="TogglePopup" 
+            style="width: 40px; height: 40px;" 
+            id="account-button">
+        <AuthorizeView>
+            <Authorized>
+                @if (string.IsNullOrWhiteSpace(profilePictureUrl))
+                {
+                    <i class="bi bi-person"></i>
+                }
+                else
+                {
+                    <img src="@profilePictureUrl" class="rounded-circle" style="width: 100%; height: 100%; object-fit: cover; border: none;" />
+                }
+            </Authorized>
+            <NotAuthorized>
+                <i class="bi bi-person"></i>
+            </NotAuthorized>
+        </AuthorizeView>
     </button>
 
     @if (isPopupVisible)
@@ -42,9 +61,10 @@
                             </div>
 
                             <button type="submit" class="btn btn-sm btn-primary">Login</button>
+
+                            <a href="/register" class="btn btn-link btn-sm">Registrieren</a>
                         </div>
                     </form>
-                    <a href="/register" class="btn btn-link btn-sm" @onclick="TogglePopup">Registrieren</a>
                 </NotAuthorized>
             </AuthorizeView>
         </div>
@@ -54,6 +74,7 @@
 @code {
     private bool isPopupVisible = false;
     private string? userIdentity;
+    private string? profilePictureUrl;
 
     [Inject]
     private IJSRuntime JSRuntime { get; set; } = default!;
@@ -72,9 +93,9 @@
                 DotNetObjectReference.Create(this),
                 "#account-popup",
                 "#account-button");
-        }
 
-        await CheckUser();
+            await CheckUser();
+        }
     }
 
     [JSInvokable]
@@ -86,6 +107,19 @@
 
     private async Task CheckUser()
     {
-        userIdentity = (await AuthProvider.GetUserId())?.ToString();
+        var userId = await AuthProvider.GetUserId();
+        if (userId != null)
+        {
+            userIdentity = userId.Value.ToString();
+            var user = await UserManager.FindByIdAsync(userIdentity);
+            profilePictureUrl = user.GetProfilePictureUrl();
+        }
+        else
+        {
+            userIdentity = string.Empty;
+            profilePictureUrl = string.Empty;
+        }
+
+        StateHasChanged();
     }
 }
