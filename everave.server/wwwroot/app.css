@@ -162,8 +162,52 @@ h1:focus {
 }
 
 /* Add responsive behavior */
-@media (max-width: 768px) {
+@media (max-width: 576px) {
     .navigation-container {
-        display: none; /* Hide navigation on smaller screens */
+        display: none !important; /* Hide navigation on smaller screens */
+    }
+}
+
+/* Default: Show all columns for the specific table */
+.forum-group-table th, .forum-group-table td {
+    display: table-cell;
+}
+
+/* Hide "Themen" and "Beiträge" on smaller screens */
+@media (max-width: 768px) {
+    .forum-group-table th:nth-child(2), /* Themen */
+    .forum-group-table td:nth-child(2),
+    .forum-group-table th:nth-child(3), /* Beiträge */
+    .forum-group-table td:nth-child(3) {
+        display: none;
+    }
+}
+
+/* Hide "Letzter Beitrag" on even smaller screens */
+@media (max-width: 576px) {
+    .forum-group-table th:nth-child(4), /* Letzter Beitrag */
+    .forum-group-table td:nth-child(4) {
+        display: none;
+    }
+}
+
+/* Default: Show all columns for the specific table */
+.forum-topics-table th, .forum-topics-table td {
+    display: table-cell;
+}
+
+/* Hide "Beiträge" on smaller screens */
+@media (max-width: 768px) {
+    .forum-topics-table th:nth-child(2), /* Beiträge */
+    .forum-topics-table td:nth-child(2) {
+        display: none;
+    }
+}
+
+/* Hide "Letzter Beitrag" on even smaller screens */
+@media (max-width: 576px) {
+    .forum-topics-table th:nth-child(3), /* Letzter Beitrag */
+    .forum-topics-table td:nth-child(3) {
+        display: none;
     }
 }
