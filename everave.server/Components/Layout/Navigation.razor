@@ -7,22 +7,24 @@
 @inject UserManager<ApplicationUser> UserManager
 
 <nav class="breadcrumb" style="margin-bottom: 0px">
-    @if (Breadcrumbs.Any())
-    {
-        @foreach (var breadcrumb in Breadcrumbs)
+    <ol class="breadcrumb d-block text-truncate" style="margin-bottom: 0px;">
+        @if (Breadcrumbs.Any())
         {
-            <li class="breadcrumb-item @(breadcrumb.IsCurrent ? "active" : "")">
-                @if (breadcrumb.IsCurrent)
-                {
-                    <span>@breadcrumb.Name</span>
-                }
-                else
-                {
-                    <a style="margin-left: 0px" href="@breadcrumb.Url">@breadcrumb.Name</a>
-                }
-            </li>
+            @foreach (var breadcrumb in Breadcrumbs)
+            {
+                <li class="breadcrumb-item d-inline-block @(breadcrumb.IsCurrent ? "active" : "")">
+                    @if (breadcrumb.IsCurrent)
+                    {
+                        <span>@breadcrumb.Name</span>
+                    }
+                    else
+                    {
+                        <a style="margin-left: 0px" href="@breadcrumb.Url">@breadcrumb.Name</a>
+                    }
+                </li>
+            }
         }
-    }
+    </ol>
 </nav>
 
 @code {
@@ -172,10 +174,10 @@
     private static Breadcrumb CreateForum(Forum forum)
     {
         return new Breadcrumb
-        {
-            Name = forum.Name,
-            Url = $"/forum/{forum.Id.ToString()}",
-        };
+            {
+                Name = forum.Name,
+                Url = $"/forum/{forum.Id.ToString()}",
+            };
     }
 
     private record Breadcrumb
