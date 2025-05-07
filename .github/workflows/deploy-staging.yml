@@ -22,7 +22,7 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/everaveserver:staging everave.server/Dockerfile .
+          docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/everaveserver:staging --file everave.server/Dockerfile everave.server
 
       - name: Push Docker image
         run: |
