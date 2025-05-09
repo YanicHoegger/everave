@@ -1,0 +1,51 @@
+﻿@inject IAzureDeploymentService AzureDeploymentService
+
+@if (!isEnabled)
+{
+    <p>Deployment not enabled</p>
+}
+else if (slots == null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Slot Name</th>
+                <th>Url</th>
+                <th>Ist erreichbar</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var slot in slots)
+            {
+                <tr>
+                    <td>@slot.Name</td>
+                    <td>
+                        <a href="@($"https://{slot.Url}")">@slot.Url</a>
+                    </td>
+                    <td>
+                        <span style="display: inline-block; width: 15px; height: 15px; border-radius: 50%; background-color: @(slot.IsRunning ? "green" : "red");"></span>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+
+    private List<Slot>? slots;
+    private bool isEnabled;
+
+    protected override async Task OnInitializedAsync()
+    {
+        isEnabled = AzureDeploymentService.IsEnabled;
+        if (!AzureDeploymentService.IsEnabled)
+            return;
+
+        slots = await AzureDeploymentService.GetSlots();
+    }
+}

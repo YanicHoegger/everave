@@ -67,6 +67,9 @@
                     </form>
                 </NotAuthorized>
             </AuthorizeView>
+            <AuthorizeView Roles="@ApplicationUser.AdminRole">
+                <a href="/admin" class="btn btn-link btn-sm">Administration</a>
+            </AuthorizeView>
         </div>
     }
 </div>

@@ -4,6 +4,7 @@
 @using everave.server.UserManagement
 @using Microsoft.AspNetCore.Components.Authorization
 @using MongoDB.Bson
+@using everave.server.AzureDeployment
 @inject UserManager<ApplicationUser> UserManager
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthProvider
@@ -20,6 +21,8 @@ else if (users == null)
 }
 else
 {
+    <Deployment/>
+
     <table class="table">
         <thead>
             <tr>

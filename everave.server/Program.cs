@@ -1,6 +1,7 @@
 using AspNetCore.Identity.Mongo;
 using AspNetCore.Identity.Mongo.Model;
 using Azure.Storage.Blobs;
+using everave.server.AzureDeployment;
 using everave.server.Components;
 using everave.server.Forum;
 using everave.server.Import;
@@ -75,6 +76,15 @@ builder.Services.AddScoped<AuthenticationStateProvider, MongoAuthenticationState
 builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddHostedService<CreateMasterAccountHostedService>();
+
+if (builder.Configuration.GetValue<bool>("UseAzureDeployment"))
+{
+    builder.Services.AddScoped<IAzureDeploymentService, AzureWebAppService>();
+}
+else
+{
+    builder.Services.AddScoped<IAzureDeploymentService, EmptyAzureDeploymentService>();
+}
 
 var app = builder.Build();
 

@@ -11,6 +11,7 @@ services:
     environment:
       - UseAzureBlobStorage=false
       - MongoDbConnectionString=mongodb://mongodb:27017
+      - UseAzureDeployment=true
 
   imagehandler:
     image: imagehandler
