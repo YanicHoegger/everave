@@ -39,7 +39,6 @@ jobs:
             --name ${{ secrets.AZURE_APP_SERVICE_NAME }} \
             --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
             --slot staging-test
-            --configuration-source ${{ secrets.AZURE_APP_SERVICE_NAME }}
 
       - name: Deploy image to the new slot
         run: |
@@ -51,3 +50,20 @@ jobs:
             --container-registry-url https://${{ secrets.ACR_LOGIN_SERVER }} \
             --container-registry-user ${{ secrets.ACR_USERNAME }} \
             --container-registry-password ${{ secrets.ACR_PASSWORD }}
+
+      - name: Copy environment variables from main app to slot
+        run: |
+          MAIN_APP_SETTINGS=$(az webapp config appsettings list \
+            --name ${{ secrets.AZURE_APP_SERVICE_NAME }} \
+            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+            --query "[].{name:name, value:value}" -o json)
+
+          echo $MAIN_APP_SETTINGS | jq -c '.[]' | while read i; do
+            KEY=$(echo $i | jq -r '.name')
+            VALUE=$(echo $i | jq -r '.value')
+            az webapp config appsettings set \
+              --name ${{ secrets.AZURE_APP_SERVICE_NAME }} \
+              --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+              --slot staging-test \
+              --settings $KEY=$VALUE
+          done
