@@ -1,3 +1,10 @@
+name: Deploy to ACR as Staging and create a new slot
+
+on:
+  push:
+    branches:
+      - master
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
