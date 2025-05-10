@@ -11,6 +11,7 @@ jobs:
 
     env:
       COMMIT_HASH: ${{ github.sha }}
+      SHORT_HASH: ${{ github.sha.substr(0, 12) }}
 
     steps:
       - name: Checkout code
@@ -41,14 +42,14 @@ jobs:
           az webapp deployment slot create \
             --name ${{ secrets.AZURE_APP_SERVICE_NAME }} \
             --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
-            --slot ${COMMIT_HASH}
+            --slot ${SHORT_HASH}
 
       - name: Deploy image to the new slot
         run: |
           az webapp config container set \
             --name ${{ secrets.AZURE_APP_SERVICE_NAME }} \
             --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
-            --slot ${COMMIT_HASH} \
+            --slot ${SHORT_HASH} \
             --container-image-name ${{ secrets.ACR_LOGIN_SERVER }}/everaveserver:${COMMIT_HASH} \
             --container-registry-url https://${{ secrets.ACR_LOGIN_SERVER }} \
             --container-registry-user ${{ secrets.ACR_USERNAME }} \
@@ -67,6 +68,6 @@ jobs:
             az webapp config appsettings set \
               --name ${{ secrets.AZURE_APP_SERVICE_NAME }} \
               --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
-              --slot ${COMMIT_HASH} \
+              --slot ${SHORT_HASH} \
               --settings $KEY=$VALUE
           done
