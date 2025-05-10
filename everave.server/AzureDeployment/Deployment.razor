@@ -1,4 +1,6 @@
-﻿@inject IAzureDeploymentService AzureDeploymentService
+﻿@using Microsoft.AspNetCore.Components.Web
+@inject IAzureDeploymentService AzureDeploymentService
+@rendermode @(new InteractiveServerRenderMode())
 
 @if (!isEnabled)
 {
@@ -16,18 +18,38 @@ else
                 <th>Slot Name</th>
                 <th>Url</th>
                 <th>Ist erreichbar</th>
+                <th></th>
+                <th></th>
             </tr>
         </thead>
         <tbody>
-            @foreach (var slot in slots)
+            @foreach (var slotState in slots)
             {
                 <tr>
-                    <td>@slot.Name</td>
+                    <td>@slotState.Slot.Name</td>
                     <td>
-                        <a href="@($"https://{slot.Url}")">@slot.Url</a>
+                        <a href="@($"https://{slotState.Slot.Url}")">@slotState.Slot.Url</a>
                     </td>
                     <td>
-                        <span style="display: inline-block; width: 15px; height: 15px; border-radius: 50%; background-color: @(slot.IsRunning ? "green" : "red");"></span>
+                        @if (!slotState.IsRunningLoaded)
+                        {
+                            <div class="spinner-border" role="status" style="width: 15px; height: 15px;">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        }
+                        else
+                        {
+                            <span style="display: inline-block; width: 15px; height: 15px; border-radius: 50%; background-color: @(slotState.IsRunning ? "green" : "red");"></span>
+                        }
+                    </td>
+                    <td>
+                        @if (slotState.IsRunning)
+                        {
+                            <button class="btn btn-primary" @onclick="() => TransferToProductionAsync(slotState.Slot)">Transfer to Production</button>
+                        }
+                    </td>
+                    <td>
+                        <button class="btn btn-primary" @onclick="() => DeleteSlotAsync(slotState.Slot)">Delete</button>
                     </td>
                 </tr>
             }
@@ -37,15 +59,61 @@ else
 
 @code {
 
-    private List<Slot>? slots;
+    private List<SlotState>? slots;
     private bool isEnabled;
 
     protected override async Task OnInitializedAsync()
     {
         isEnabled = AzureDeploymentService.IsEnabled;
-        if (!AzureDeploymentService.IsEnabled)
+        if (!isEnabled)
             return;
 
-        slots = await AzureDeploymentService.GetSlots();
+        await LoadSlots();
+    }
+
+    private async Task LoadSlots()
+    {
+        slots = (await AzureDeploymentService.GetSlots())
+            .Select(slot => new SlotState(slot))
+            .ToList();
+
+        foreach (var slotState in slots)
+        {
+            _ = LoadSlotStatusAsync(slotState);
+        }
+    }
+
+    private async Task LoadSlotStatusAsync(SlotState slotState)
+    {
+        try
+        {
+            slotState.IsRunning = await slotState.Slot.IsSlotReachableAsync();
+        }
+        finally
+        {
+            slotState.IsRunningLoaded = true;
+            StateHasChanged();
+        }
+    }
+
+    private async Task TransferToProductionAsync(Slot slot)
+    {
+        await AzureDeploymentService.TransferToProductionAsync(slot);
+        await LoadSlots();
+        StateHasChanged();
+    }
+
+    private async Task DeleteSlotAsync(Slot slot)
+    {
+        await AzureDeploymentService.DeleteSlot(slot);
+        await LoadSlots();
+        StateHasChanged();
+    }
+
+    private class SlotState(Slot slot)
+    {
+        public Slot Slot { get; } = slot;
+        public bool IsRunningLoaded { get; set; } = false;
+        public bool IsRunning { get; set; } = false;
     }
 }

@@ -1,3 +1,4 @@
+using Azure;
 using Azure.Core;
 using Azure.Identity;
 using Azure.ResourceManager;
@@ -49,7 +50,68 @@ public class AzureWebAppService : IAzureDeploymentService
     {
         var slots = new List<Slot>();
 
-        var webAppResourceId = $"/subscriptions/{_configuration[AzureSubscriptionIdKey]}/resourceGroups/{_configuration[AzureResourceGroupKey]}/providers/Microsoft.Web/sites/{_configuration[AzureSiteNameKey]}";
+        var webApp = await GetProductionResource();
+
+        await foreach (var slot in webApp.GetWebSiteSlots().GetAllAsync())
+        {
+            var item = new Slot(
+                slot.Data.Name,
+                slot.Data.HostNames.FirstOrDefault() ?? "No URL");
+
+            slots.Add(item);
+        }
+
+        return slots;
+    }
+
+
+    public async Task TransferToProductionAsync(Slot slot)
+    {
+        var slotResource = await GetSlotResource(slot);
+        var productionWebApp = await GetProductionResource();
+
+        var productionConfig = (await productionWebApp.GetWebSiteConfig().GetAsync()).Value;
+        var slotConfig = (await slotResource.GetWebSiteSlotConfig().GetAsync()).Value;
+
+        productionConfig.Data.LinuxFxVersion = slotConfig.Data.LinuxFxVersion;
+
+        await productionConfig.CreateOrUpdateAsync(WaitUntil.Completed, productionConfig.Data);
+
+        await DeleteSlot(slotResource);
+    }
+
+    public async Task DeleteSlot(Slot slot)
+    {
+        var webApp = await GetSlotResource(slot);
+
+        await DeleteSlot(webApp);
+    }
+
+    private static async Task DeleteSlot(WebSiteSlotResource webApp)
+    {
+        await webApp.DeleteAsync(WaitUntil.Completed, true);
+    }
+
+    private async Task<WebSiteSlotResource> GetSlotResource(Slot slot)
+    {
+        //var webAppResourceId = WebSiteSlotResource.CreateResourceIdentifier(_configuration[AzureSubscriptionIdKey], _configuration[AzureResourceGroupKey], _configuration[AzureSiteNameKey], slot.Name);
+        var webAppResourceId =
+            $"/subscriptions/{_configuration[AzureSubscriptionIdKey]}/resourceGroups/{_configuration[AzureResourceGroupKey]}/providers/Microsoft.Web/sites/{_configuration[AzureSiteNameKey]}/slots/{slot.Name}";
+
+        var webApp = _armClient.GetWebSiteSlotResource(new ResourceIdentifier(webAppResourceId));
+
+        var webAppResponse = await webApp.GetAsync();
+        if (webAppResponse == null)
+        {
+            throw new InvalidOperationException($"Web app '{_configuration[AzureSiteNameKey]}/{slot.Name}' does not exist or is not accessible.");
+        }
+
+        return webApp;
+    }
+
+    private async Task<WebSiteResource> GetProductionResource()
+    {
+        var webAppResourceId = WebSiteResource.CreateResourceIdentifier(_configuration[AzureSubscriptionIdKey], _configuration[AzureResourceGroupKey], _configuration[AzureSiteNameKey]);
         var webApp = _armClient.GetWebSiteResource(new ResourceIdentifier(webAppResourceId));
 
         var webAppResponse = await webApp.GetAsync();
@@ -58,37 +120,6 @@ public class AzureWebAppService : IAzureDeploymentService
             throw new InvalidOperationException($"Web app '{_configuration[AzureSiteNameKey]}' does not exist or is not accessible.");
         }
 
-        await foreach (var slot in webApp.GetWebSiteSlots().GetAllAsync())
-        {
-            var url = slot.Data.HostNames.FirstOrDefault() ?? "No URL";
-            var item = new Slot(
-                slot.Data.Name,
-                url,
-                await IsSlotReachableAsync(url));
-
-            slots.Add(item);
-        }
-
-        return slots;
-    }
-
-    //TODO: Use that in different task
-    public async Task<bool> IsSlotReachableAsync(string slotUrl)
-    {
-        if (string.IsNullOrWhiteSpace(slotUrl) || slotUrl == "No URL")
-        {
-            return false;
-        }
-
-        using var httpClient = new HttpClient();
-        try
-        {
-            var response = await httpClient.GetAsync($"https://{slotUrl}");
-            return response.IsSuccessStatusCode; 
-        }
-        catch
-        {
-            return false;
-        }
+        return webApp;
     }
 }

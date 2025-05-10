@@ -5,5 +5,7 @@
         bool IsEnabled { get; }
 
         Task<List<Slot>> GetSlots();
+        Task TransferToProductionAsync(Slot slot);
+        Task DeleteSlot(Slot slot);
     }
 }

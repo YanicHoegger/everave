@@ -7,5 +7,15 @@
         {
             throw new NotSupportedException();
         }
+
+        public Task TransferToProductionAsync(Slot slot)
+        {
+            throw new NotSupportedException();
+        }
+
+        public Task DeleteSlot(Slot slot)
+        {
+            throw new NotSupportedException();
+        }
     }
 }
