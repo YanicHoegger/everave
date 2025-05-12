@@ -3,6 +3,7 @@ using AspNetCore.Identity.Mongo.Model;
 using Azure.Storage.Blobs;
 using everave.server.AzureDeployment;
 using everave.server.Components;
+using everave.server.Components.GitHub;
 using everave.server.Forum;
 using everave.server.Import;
 using everave.server.Services;
@@ -80,6 +81,7 @@ builder.Services.AddHostedService<CreateMasterAccountHostedService>();
 if (builder.Configuration.GetValue<bool>("UseAzureDeployment"))
 {
     builder.Services.AddScoped<IAzureDeploymentService, AzureWebAppService>();
+    builder.Services.AddScoped<IGitHubAccess, GitHubAccess>();
 }
 else
 {

@@ -1,9 +1,10 @@
 ﻿namespace everave.server.AzureDeployment
 {
-    public class Slot(string name, string url)
+    public class Slot(string name, string url, string resourceId)
     {
         public string Name { get; } = name;
         public string Url { get; } = url;
+        public string ResourceId { get; } = resourceId;
 
         public async Task<bool> IsSlotReachableAsync()
         {

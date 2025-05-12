@@ -56,7 +56,10 @@ public class AzureWebAppService : IAzureDeploymentService
         {
             var item = new Slot(
                 slot.Data.Name,
-                slot.Data.HostNames.FirstOrDefault() ?? "No URL");
+                slot.Data.HostNames.FirstOrDefault() ?? "No URL",
+                slot.Data.Id );
+
+            var temp = slot.Data.SystemData?.CreatedOn;
 
             slots.Add(item);
         }
@@ -94,11 +97,7 @@ public class AzureWebAppService : IAzureDeploymentService
 
     private async Task<WebSiteSlotResource> GetSlotResource(Slot slot)
     {
-        //var webAppResourceId = WebSiteSlotResource.CreateResourceIdentifier(_configuration[AzureSubscriptionIdKey], _configuration[AzureResourceGroupKey], _configuration[AzureSiteNameKey], slot.Name);
-        var webAppResourceId =
-            $"/subscriptions/{_configuration[AzureSubscriptionIdKey]}/resourceGroups/{_configuration[AzureResourceGroupKey]}/providers/Microsoft.Web/sites/{_configuration[AzureSiteNameKey]}/slots/{slot.Name}";
-
-        var webApp = _armClient.GetWebSiteSlotResource(new ResourceIdentifier(webAppResourceId));
+        var webApp = _armClient.GetWebSiteSlotResource(new ResourceIdentifier(slot.ResourceId));
 
         var webAppResponse = await webApp.GetAsync();
         if (webAppResponse == null)
