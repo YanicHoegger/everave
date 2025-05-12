@@ -4,12 +4,13 @@ using Azure.Identity;
 using Azure.ResourceManager;
 using Azure.ResourceManager.AppService;
 
-namespace everave.server.AzureDeployment;
+namespace everave.server.Components.AzureDeployment;
 
 public class AzureWebAppService : IAzureDeploymentService
 {
     private readonly IConfiguration _configuration;
     private readonly ArmClient _armClient;
+    private bool _isBusy;
 
     private const string AzureTenantIdKey = "AZURE_TENANT_ID";
     private const string AzureClientIdKey = "AZURE_CLIENT_ID";
@@ -31,6 +32,18 @@ public class AzureWebAppService : IAzureDeploymentService
 
     public bool IsEnabled => AreRequiredConfigurationsSet();
 
+    public bool IsBusy
+    {
+        get => _isBusy;
+        private set
+        {
+            _isBusy = value;
+            IsBusyChanged?.Invoke();
+        }
+    }
+
+    public event Action? IsBusyChanged;
+
     private bool AreRequiredConfigurationsSet()
     {
         var requiredKeys = new[]
@@ -48,6 +61,8 @@ public class AzureWebAppService : IAzureDeploymentService
 
     public async Task<List<Slot>> GetSlots()
     {
+        IsBusy = true;
+
         var slots = new List<Slot>();
 
         var webApp = await GetProductionResource();
@@ -59,10 +74,10 @@ public class AzureWebAppService : IAzureDeploymentService
                 slot.Data.HostNames.FirstOrDefault() ?? "No URL",
                 slot.Data.Id );
 
-            var temp = slot.Data.SystemData?.CreatedOn;
-
             slots.Add(item);
         }
+
+        IsBusy = false;
 
         return slots;
     }
@@ -70,6 +85,7 @@ public class AzureWebAppService : IAzureDeploymentService
 
     public async Task TransferToProductionAsync(Slot slot)
     {
+        IsBusy = true;
         var slotResource = await GetSlotResource(slot);
         var productionWebApp = await GetProductionResource();
 
@@ -81,13 +97,16 @@ public class AzureWebAppService : IAzureDeploymentService
         await productionConfig.CreateOrUpdateAsync(WaitUntil.Completed, productionConfig.Data);
 
         await DeleteSlot(slotResource);
+        IsBusy = false;
     }
 
     public async Task DeleteSlot(Slot slot)
     {
+        IsBusy = true;
         var webApp = await GetSlotResource(slot);
 
         await DeleteSlot(webApp);
+        IsBusy = false;
     }
 
     private static async Task DeleteSlot(WebSiteSlotResource webApp)

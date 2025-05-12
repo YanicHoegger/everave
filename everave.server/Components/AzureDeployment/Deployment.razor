@@ -1,23 +1,20 @@
-﻿@using Microsoft.AspNetCore.Components.Web
+﻿@using everave.server.Components.Common
 @inject IAzureDeploymentService AzureDeploymentService
-@rendermode @(new InteractiveServerRenderMode())
+@rendermode InteractiveServer
 
-@if (!isEnabled)
-{
-    <p>Deployment not enabled</p>
-}
-else if (slots == null)
-{
-    <p>Loading...</p>
-}
-else if (slots.Count == 0)
-{
-    <p>No slots available</p>
-}
-else
-{
-    <table class="table">
-        <thead>
+<ForeignAccess Access="AzureDeploymentService" Title="Azure Zugang">
+    @if (slots == null)
+    {
+        <p>Loading...</p>
+    }
+    else if (slots.Count == 0)
+    {
+        <p>No slots available</p>
+    }
+    else
+    {
+        <table class="table">
+            <thead>
             <tr>
                 <th>Slot Name</th>
                 <th>Url</th>
@@ -25,8 +22,8 @@ else
                 <th></th>
                 <th></th>
             </tr>
-        </thead>
-        <tbody>
+            </thead>
+            <tbody>
             @foreach (var slotState in slots)
             {
                 <tr>
@@ -57,19 +54,18 @@ else
                     </td>
                 </tr>
             }
-        </tbody>
-    </table>
-}
+            </tbody>
+        </table>
+    }
+</ForeignAccess>
 
 @code {
 
     private List<SlotState>? slots;
-    private bool isEnabled;
 
     protected override async Task OnInitializedAsync()
     {
-        isEnabled = AzureDeploymentService.IsEnabled;
-        if (!isEnabled)
+        if (!AzureDeploymentService.IsEnabled)
             return;
 
         await LoadSlots();
@@ -117,7 +113,7 @@ else
     private class SlotState(Slot slot)
     {
         public Slot Slot { get; } = slot;
-        public bool IsRunningLoaded { get; set; } = false;
-        public bool IsRunning { get; set; } = false;
+        public bool IsRunningLoaded { get; set; }
+        public bool IsRunning { get; set; }
     }
 }

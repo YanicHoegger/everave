@@ -1,33 +1,39 @@
-﻿@inject IGitHubAccess GitHubAccess
+﻿@using everave.server.Components.Common
+@inject IGitHubAccess GitHubAccess
 
 <h3>Available Updates</h3>
 
-@if (pulls == null)
-{
-    <p>Loading...</p>
-}
-else if (!pulls.Any())
-{
-    <p>✅ All dependencies are up to date</p>
-}
-else
-{
-    <ul>
-        @foreach (var pr in pulls)
-        {
-            <li>
-                <a href="@pr.Url" target="_blank">@pr.Title</a> - @pr.Status on @DateTime.Parse(pr.CreatedAt).ToLocalTime().ToShortDateString()
-                <button class="btn btn-sm btn-primary" @onclick="() => Approve(pr)">Auführen</button>
-            </li>
-        }
-    </ul>
-}
+<ForeignAccess Access="GitHubAccess" Title="GitHubAccess">
+    @if (pulls == null)
+    {
+        <p>Loading...</p>
+    }
+    else if (!pulls.Any())
+    {
+        <p>✅ All dependencies are up to date</p>
+    }
+    else
+    {
+        <ul>
+            @foreach (var pr in pulls)
+            {
+                <li>
+                    <a href="@pr.Url" target="_blank">@pr.Title</a> - @pr.Status on @DateTime.Parse(pr.CreatedAt).ToLocalTime().ToShortDateString()
+                    <button class="btn btn-sm btn-primary" @onclick="() => Approve(pr)">Auführen</button>
+                </li>
+            }
+        </ul>
+    }
+</ForeignAccess>
 
 @code {
     private List<DependabotPR> pulls;
 
     protected override async Task OnInitializedAsync()
     {
+        if(!GitHubAccess.IsEnabled)
+            return;
+
         pulls = await GitHubAccess.GetDependabotPRsAsync();
     }
 

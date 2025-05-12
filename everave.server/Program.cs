@@ -1,8 +1,8 @@
 using AspNetCore.Identity.Mongo;
 using AspNetCore.Identity.Mongo.Model;
 using Azure.Storage.Blobs;
-using everave.server.AzureDeployment;
 using everave.server.Components;
+using everave.server.Components.AzureDeployment;
 using everave.server.Components.GitHub;
 using everave.server.Forum;
 using everave.server.Import;
@@ -86,6 +86,7 @@ if (builder.Configuration.GetValue<bool>("UseAzureDeployment"))
 else
 {
     builder.Services.AddScoped<IAzureDeploymentService, EmptyAzureDeploymentService>();
+    builder.Services.AddScoped<IGitHubAccess, NoGitHubAccess>();
 }
 
 var app = builder.Build();

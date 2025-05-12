@@ -1,4 +1,4 @@
-﻿namespace everave.server.AzureDeployment
+﻿namespace everave.server.Components.AzureDeployment
 {
     public class Slot(string name, string url, string resourceId)
     {

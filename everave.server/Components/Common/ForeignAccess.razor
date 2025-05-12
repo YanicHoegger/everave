@@ -1,0 +1,45 @@
+﻿@implements IDisposable
+
+@if (!isEnabled)
+{
+    <p>Der Dienst @Title steht nicht zur verfügung</p>
+}
+else if (IsBusy)
+{
+    <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+}
+else
+{
+    @ChildContent
+}
+
+@code {
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+    [Parameter, EditorRequired]
+    public IForeignAccess Access { get; set; }
+    [Parameter]
+    public string? Title { get; set; }
+
+    private bool IsBusy => Access.IsBusy;
+
+    private bool isEnabled;
+
+    protected override void OnInitialized()
+    {
+        Access.IsBusyChanged += OnIsBusyChanged;
+        isEnabled = Access.IsEnabled;
+    }
+
+    private void OnIsBusyChanged()
+    {
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        Access.IsBusyChanged -= OnIsBusyChanged;
+    }
+}
