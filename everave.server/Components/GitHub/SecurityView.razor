@@ -14,23 +14,10 @@
     }
     else
     {
-        <table>
-            <thead>
-            <tr><th>Package</th><th>Severity</th><th>Current</th><th>Fixed</th><th>Details</th></tr>
-            </thead>
-            <tbody>
-            @foreach (var alert in alerts)
-            {
-                <tr>
-                    <td>@alert.PackageName</td>
-                    <td>@alert.Severity</td>
-                    <td>@alert.CurrentVersion</td>
-                    <td>@alert.FixedVersion</td>
-                    <td><a href="@alert.AdvisoryUrl" target="_blank">View</a></td>
-                </tr>
-            }
-            </tbody>
-        </table>
+        foreach (var dependabotAlert in alerts)
+        {
+            <AlertView Alert="dependabotAlert" />
+        }
     }
 </ForeignAccess>
 

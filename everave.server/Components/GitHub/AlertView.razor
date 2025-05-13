@@ -1,0 +1,42 @@
+﻿@inject NavigationManager NavigationManager
+
+@code {
+    [Parameter, EditorRequired]
+    public DependabotAlert Alert { get; set; } = new();
+}
+
+<div class="card mb-3 shadow-sm border-@GetSeverityColor(Alert.Severity)">
+    <div class="card-header bg-@GetSeverityColor(Alert.Severity) text-white">
+        <strong>@Alert.PackageName</strong> &mdash; <span class="text-capitalize">@Alert.Severity</span>
+    </div>
+    <div class="card-body">
+        <h5 class="card-title">@Alert.Summery</h5>
+        <p class="card-text">@Alert.Description</p>
+
+        <div class="d-flex flex-wrap gap-3 mt-3">
+            <span class="badge bg-secondary">State: @Alert.State</span>
+
+            @if (!string.IsNullOrWhiteSpace(Alert.AdvisoryUrl))
+            {
+                <a href="@Alert.AdvisoryUrl" target="_blank" class="btn btn-outline-primary btn-sm">
+                    View Advisory
+                </a>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private static string GetSeverityColor(string severity)
+    {
+        return severity?.ToLowerInvariant() switch
+        {
+            "low" => "success",
+            "moderate" => "warning",
+            "medium" => "warning",
+            "high" => "danger",
+            "critical" => "dark",
+            _ => "info"
+        };
+    }
+}

@@ -1,6 +1,7 @@
 ﻿using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using MongoDB.Bson;
 
 namespace everave.server.Components.GitHub
 {
@@ -73,18 +74,23 @@ namespace everave.server.Components.GitHub
         {
             IsBusy = true;
 
-            var response = await _http.GetFromJsonAsync<JsonElement[]>($"dependabot/alerts");
+            var response = await _http.GetFromJsonAsync<JsonElement[]>("dependabot/alerts");
 
             IsBusy = false;
 
-            return response?.Select(a => new DependabotAlert
+            return response?.Select(a =>
             {
-                PackageName = a.GetProperty("dependency").GetProperty("package").GetProperty("name").GetString(),
-                Severity = a.GetProperty("security_advisory").GetProperty("severity").GetString(),
-                CurrentVersion = a.GetProperty("dependency").GetProperty("version").GetString(),
-                FixedVersion = a.GetProperty("security_advisory").GetProperty("vulnerabilities")[0]
-                    .GetProperty("first_patched_version").GetProperty("identifier").GetString(),
-                AdvisoryUrl = a.GetProperty("html_url").GetString()
+                var dependabotAlert = new DependabotAlert
+                {
+                    PackageName = a.GetProperty("dependency").GetProperty("package").GetProperty("name").GetString(),
+                    Severity = a.GetProperty("security_advisory").GetProperty("severity").GetString(),
+                    AdvisoryUrl = a.GetProperty("html_url").GetString(),
+                    State = a.GetProperty("state").GetString(),
+                    Description = a.GetProperty("security_advisory").GetProperty("description").GetString(),
+                    Summery = a.GetProperty("security_advisory").GetProperty("summary").GetString()
+                };
+
+                return dependabotAlert;
             }).ToList() ?? [];
         }
 
