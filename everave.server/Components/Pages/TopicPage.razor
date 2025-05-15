@@ -42,7 +42,7 @@ else
                         <p class="creator-name">@entry.CreatorName</p>
                     </div>
 
-                    <!-- Entry Content -->
+                    <!-- Post Content -->
                     <div class="entry-content flex-grow-1">
                         <div class="entry-header text-muted mb-2">
                             <small>Erstellt am: @entry.CreatedAt.PrintCET()</small>
@@ -86,7 +86,7 @@ else
     protected override async Task OnInitializedAsync()
     {
         topicTitle = (await ForumService.GetTopicByIdAsync(new ObjectId(id)).ConfigureAwait(false)).Title;
-        var rawEntries = await ForumService.GetEntriesByTopicIdAsync(new ObjectId(id), GetCurrentPage()).ConfigureAwait(false);
+        var rawEntries = await ForumService.GetPostsByTopicIdAsync(new ObjectId(id), GetCurrentPage()).ConfigureAwait(false);
         entries = [];
 
         foreach (var entry in rawEntries)
@@ -142,20 +142,20 @@ else
     {
         if (!string.IsNullOrWhiteSpace(newContent))
         {
-            var entry = new Entry
+            var post = new Post
                 {
                     HtmlContent = newContent,
                     CreatedAt = DateTime.Now,
                     TopicId = new ObjectId(id),
                     UserId = (ObjectId)(await AuthProvider.GetUserId())!
                 };
-            await ForumService.AddEntryAsync(entry);
+            await ForumService.AddPostAsync(post);
 
-            var user = await UserManager.FindByIdAsync(entry.UserId.ToString());
+            var user = await UserManager.FindByIdAsync(post.UserId.ToString());
             entries!.Add(new EntryDisplay
                 {
-                    HtmlContent = entry.HtmlContent,
-                    CreatedAt = entry.CreatedAt,
+                    HtmlContent = post.HtmlContent,
+                    CreatedAt = post.CreatedAt,
                     CreatorName = user?.UserName ?? "Unknown",
                     CreatorProfilePictureUrl = user?.ProfilePictureUrl ?? "/images/default-profile.png"
                 });

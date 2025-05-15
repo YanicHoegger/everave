@@ -13,7 +13,7 @@ namespace everave.server.Services
             fileContent.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
             formData.Add(fileContent, "upload", fileName);
 
-            var response = await _httpClient.PostAsync("ImageUpload", formData);
+            var response = await _httpClient.PostAsync("Image/upload", formData);
 
             return response.IsSuccessStatusCode;
         }
@@ -24,6 +24,12 @@ namespace everave.server.Services
             response.EnsureSuccessStatusCode();
 
             return await response.Content.ReadAsStreamAsync();
+        }
+
+        public async Task<bool> DeleteImageAsync(string fileName)
+        {
+            var response = await _httpClient.PostAsync($"/Image/delete/{fileName}", null);
+            return response.IsSuccessStatusCode;
         }
     }
 }

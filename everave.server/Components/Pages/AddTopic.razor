@@ -105,14 +105,14 @@ else
 
             await ForumService.AddTopicAsync(topic);
 
-            var entry = new Entry
+            var post = new Post
                 {
                     HtmlContent = Model.FirstEntry,
                     CreatedAt = DateTime.Now,
                     TopicId = topicId,
                     UserId = (ObjectId)MongoUserId!
                 };
-            await ForumService.AddEntryAsync(entry);
+            await ForumService.AddPostAsync(post);
 
             NavigationManager.NavigateTo($"/topic/{topicId}");
         }

@@ -49,7 +49,7 @@ else
                             <td>@forum.NumberOfTopics</td>
                             <td>@forum.NumberOfEntries</td>
                             <td>
-                                <LastEntryDetails EntryId="@(forum.LastEntry)" ShowTopic="true" />
+                                <LastPostDetails PostId="@(forum.LastEntry)" ShowTopic="true" />
                             </td>
                             @if (isAdmin)
                             {

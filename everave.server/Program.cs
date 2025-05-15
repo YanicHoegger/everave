@@ -61,10 +61,12 @@ builder.Services.AddIdentityMongoDbProvider<ApplicationUser, MongoRole>(identity
     identityOptions.Password.RequireDigit = false;
     identityOptions.Password.RequireNonAlphanumeric = false;
     identityOptions.Password.RequiredLength = 6;
+    identityOptions.User.AllowedUserNameCharacters = null;
 }, mongoIdentityOptions =>
 {
     mongoIdentityOptions.ConnectionString = connectionString;
 })
+//.AddUserValidator<PhpBBUsernameValidator>()
 .AddRoles<MongoRole>();
 
 builder.Services.AddAuthentication(options =>

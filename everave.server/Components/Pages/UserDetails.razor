@@ -72,7 +72,11 @@ else
 
             if (success)
             {
+                if(!string.IsNullOrWhiteSpace(user.ProfilePictureUrl))
+                    await ImageStorageService.DeleteImageAsync(Path.GetFileName(user.ProfilePictureUrl));
+
                 user.ProfilePictureUrl = $"/image/{fileName}";
+
                 await UserManager.UpdateAsync(user);
             }
         }

@@ -4,8 +4,9 @@ namespace ImageService.Controllers
 {
     [ApiController]
     [Route("[controller]")]
-    public class ImageUploadController : ControllerBase
+    public class ImageController : ControllerBase
     {
+        [HttpPost("upload")]
         public async Task<IActionResult> UploadImage([FromForm] IFormFile upload)
         {
             if (upload == null || upload.Length == 0)
@@ -21,6 +22,20 @@ namespace ImageService.Controllers
             {
                 await upload.CopyToAsync(stream);
             }
+
+            return Ok();
+        }
+
+        [HttpPost("delete/{fileName}")]
+        public IActionResult DeleteImage(string fileName)
+        {
+            var path = "images";
+            var filePath = Path.Combine(path, fileName);
+
+            if (!System.IO.File.Exists(filePath)) 
+                return NotFound("File not found");
+
+            System.IO.File.Delete(filePath);
 
             return Ok();
         }

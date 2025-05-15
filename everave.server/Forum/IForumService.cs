@@ -11,8 +11,8 @@ namespace everave.server.Forum
         Task<List<Topic>> GetTopicsByForumIdAsync(ObjectId forumId);
         Task<List<Topic>> GetTopicsByForumIdAsync(ObjectId forumId, int page);
         Task<Topic> GetTopicByIdAsync(ObjectId topicId);
-        Task<List<Entry>> GetEntriesByTopicIdAsync(ObjectId topicId, int page = 1);
-        Task<Entry> GetEntryById(ObjectId entryId);
+        Task<List<Post>> GetPostsByTopicIdAsync(ObjectId topicId, int page = 1);
+        Task<Post> GetPostById(ObjectId entryId);
 
         Task AddForumGroupAsync(ForumGroup group);
         Task DeleteForumGroupAsync(ForumGroup group);
@@ -20,8 +20,8 @@ namespace everave.server.Forum
         Task DeleteForumAsync(Forum forum);
         Task AddTopicAsync(Topic topic);
         Task DeleteTopicAsync(Topic topic);
-        Task AddEntryAsync(Entry entry);
-        Task DeleteEntryAsync(Entry entry);
-        Task<int> GetPageOfEntryAsync(ObjectId entryId);
+        Task AddPostAsync(Post post);
+        Task DeletePostAsync(Post post);
+        Task<int> GetPageOfPostAsync(ObjectId entryId);
     }
 }

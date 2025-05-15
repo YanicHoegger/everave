@@ -4,5 +4,6 @@ namespace everave.server.Services
     {
         Task<bool> UploadImageAsync(Stream imageStream, string fileName);
         Task<Stream> GetImageAsync(string fileName);
+        Task<bool> DeleteImageAsync(string fileName);
     }
 }

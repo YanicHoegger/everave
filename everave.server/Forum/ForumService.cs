@@ -1,5 +1,6 @@
 ﻿using MongoDB.Bson;
 using MongoDB.Driver;
+using System.Security.Cryptography;
 
 namespace everave.server.Forum
 {
@@ -8,20 +9,23 @@ namespace everave.server.Forum
         private readonly IMongoCollection<ForumGroup> _forumGroups;
         private readonly IMongoCollection<Forum> _forums;
         private readonly IMongoCollection<Topic> _topics;
-        private readonly IMongoCollection<Entry> _entries;
+        private readonly IMongoCollection<Post> _posts;
 
         public ForumService(IMongoDatabase database)
         {
+            //TODO: Remove after migration is done
+            Task.Run(() => Migrate(database));
+
             _forumGroups = database.GetCollection<ForumGroup>("forumGroups");
             _forums = database.GetCollection<Forum>("forums");
             _topics = database.GetCollection<Topic>("topics");
-            _entries = database.GetCollection<Entry>("entries");
+            _posts = database.GetCollection<Post>("posts");
 
             _topics.Indexes.CreateOne(new CreateIndexModel<Topic>(
             Builders<Topic>.IndexKeys.Ascending(t => t.ForumId)));
 
-            _entries.Indexes.CreateOne(new CreateIndexModel<Entry>(
-                Builders<Entry>.IndexKeys.Ascending(e => e.TopicId)));
+            _posts.Indexes.CreateOne(new CreateIndexModel<Post>(
+                Builders<Post>.IndexKeys.Ascending(e => e.TopicId)));
 
             _forums.Indexes.CreateOne(new CreateIndexModel<Forum>(
                 Builders<Forum>.IndexKeys.Ascending(f => f.GroupId)));
@@ -52,26 +56,26 @@ namespace everave.server.Forum
         public Task<Topic> GetTopicByIdAsync(ObjectId topicId) =>
             _topics.Find(t => t.Id == topicId).FirstAsync();
 
-        public Task<List<Entry>> GetEntriesByTopicIdAsync(ObjectId topicId, int page = 1) =>
-            _entries
+        public Task<List<Post>> GetPostsByTopicIdAsync(ObjectId topicId, int page = 1) =>
+            _posts
                 .Find(e => e.TopicId == topicId)
                 .Skip((page - 1) * PageSize)
                 .Limit(PageSize)
                 .SortBy(e => e.CreatedAt)
                 .ToListAsync();
 
-        public Task<Entry> GetEntryById(ObjectId entryId) =>
-            _entries.Find(e => e.Id == entryId).FirstAsync();
+        public Task<Post> GetPostById(ObjectId entryId) =>
+            _posts.Find(e => e.Id == entryId).FirstAsync();
 
-        public async Task<int> GetPageOfEntryAsync(ObjectId entryId)
+        public async Task<int> GetPageOfPostAsync(ObjectId entryId)
         {
-            var entry = await _entries.Find(e => e.Id == entryId).FirstOrDefaultAsync();
+            var entry = await _posts.Find(e => e.Id == entryId).FirstOrDefaultAsync();
             if (entry == null)
             {
-                throw new ArgumentException("Entry not found", nameof(entryId));
+                throw new ArgumentException("Post not found", nameof(entryId));
             }
 
-            var entriesBeforeCount = await _entries
+            var entriesBeforeCount = await _posts
                 .Find(e => e.TopicId == entry.TopicId && e.CreatedAt < entry.CreatedAt)
                 .CountDocumentsAsync();
 
@@ -113,24 +117,24 @@ namespace everave.server.Forum
             );
         }
 
-        public async Task AddEntryAsync(Entry entry)
+        public async Task AddPostAsync(Post post)
         {
-            await _entries.InsertOneAsync(entry);
+            await _posts.InsertOneAsync(post);
 
             var topicUpdate = Builders<Topic>.Update
                 .Inc(t => t.NumberOfEntries, 1)
-                .Set(t => t.LastEntry, entry.Id);
+                .Set(t => t.LastEntry, post.Id);
             await _topics.UpdateOneAsync(
-                t => t.Id == entry.TopicId,
+                t => t.Id == post.TopicId,
                 topicUpdate
             );
 
-            var topic = await _topics.Find(t => t.Id == entry.TopicId).FirstOrDefaultAsync();
+            var topic = await _topics.Find(t => t.Id == post.TopicId).FirstOrDefaultAsync();
             if (topic != null)
             {
                 var forumUpdate = Builders<Forum>.Update
                     .Inc(f => f.NumberOfEntries, 1)
-                    .Set(f => f.LastEntry, entry.Id);
+                    .Set(f => f.LastEntry, post.Id);
                 await _forums.UpdateOneAsync(
                     f => f.Id == topic.ForumId,
                     forumUpdate
@@ -138,29 +142,29 @@ namespace everave.server.Forum
             }
         }
 
-        public async Task DeleteEntryAsync(Entry entry)
+        public async Task DeletePostAsync(Post post)
         {
-            await _entries.DeleteOneAsync(e => e.Id == entry.Id);
+            await _posts.DeleteOneAsync(e => e.Id == post.Id);
 
             var topicUpdate = Builders<Topic>.Update.Inc(t => t.NumberOfEntries, -1);
             await _topics.UpdateOneAsync(
-                t => t.Id == entry.TopicId,
+                t => t.Id == post.TopicId,
                 topicUpdate
             );
 
-            var topic = await _topics.Find(t => t.Id == entry.TopicId).FirstOrDefaultAsync();
+            var topic = await _topics.Find(t => t.Id == post.TopicId).FirstOrDefaultAsync();
             if (topic != null)
             {
-                if (topic.LastEntry == entry.Id)
+                if (topic.LastEntry == post.Id)
                 {
-                    var oldestEntry = await _entries
-                        .Find(e => e.TopicId == entry.TopicId)
+                    var oldestEntry = await _posts
+                        .Find(e => e.TopicId == post.TopicId)
                         .SortBy(e => e.CreatedAt)
                         .FirstOrDefaultAsync();
 
                     var lastEntryUpdate = Builders<Topic>.Update.Set(t => t.LastEntry, oldestEntry?.Id);
                     await _topics.UpdateOneAsync(
-                        t => t.Id == entry.TopicId,
+                        t => t.Id == post.TopicId,
                         lastEntryUpdate
                     );
                 }
@@ -175,9 +179,9 @@ namespace everave.server.Forum
                 var forum = await _forums.Find(f => f.Id == topic.ForumId).FirstOrDefaultAsync();
                 if (forum != null)
                 {
-                    if (forum.LastEntry == entry.Id)
+                    if (forum.LastEntry == post.Id)
                     {
-                        var oldestEntryInForum = await _entries
+                        var oldestEntryInForum = await _posts
                             .Find(e => e.TopicId == topic.Id)
                             .SortBy(e => e.CreatedAt)
                             .FirstOrDefaultAsync();
@@ -188,6 +192,34 @@ namespace everave.server.Forum
                             forumLastEntryUpdate
                         );
                     }
+                }
+            }
+        }
+
+        //TODO: Remove after migration is done
+        private static async Task Migrate(IMongoDatabase database)
+        {
+            var list = (await database.ListCollectionNamesAsync()).ToList();
+            if (list.Contains("entries"))
+            {
+                if (list.Contains("posts"))
+                {
+                    var oldCollection = database.GetCollection<BsonDocument>("entries");
+                    var newCollection = database.GetCollection<BsonDocument>("posts");
+
+                    var documents = await oldCollection.Find(FilterDefinition<BsonDocument>.Empty).ToListAsync();
+
+                    // Insert into the new collection
+                    if (documents.Count > 0)
+                    {
+                        await newCollection.InsertManyAsync(documents);
+                    }
+
+                    await database.DropCollectionAsync("entries");
+                }
+                else
+                {
+                    await database.RenameCollectionAsync("entries", "posts");
                 }
             }
         }
