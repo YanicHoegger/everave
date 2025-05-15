@@ -166,7 +166,7 @@ else
         if (ForumGroup != null)
         {
             await ForumService.DeleteForumGroupAsync(ForumGroup).ConfigureAwait(false);
-            await OnGroupDeleted.InvokeAsync(ForumGroup);
+            await InvokeAsync(() => OnGroupDeleted.InvokeAsync(ForumGroup));
         }
     }
 

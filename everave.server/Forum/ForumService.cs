@@ -1,6 +1,7 @@
 ﻿using MongoDB.Bson;
 using MongoDB.Driver;
-using System.Security.Cryptography;
+using everave.server.UserManagement;
+using Microsoft.AspNetCore.Identity;
 
 namespace everave.server.Forum
 {
@@ -13,9 +14,6 @@ namespace everave.server.Forum
 
         public ForumService(IMongoDatabase database)
         {
-            //TODO: Remove after migration is done
-            Task.Run(() => Migrate(database));
-
             _forumGroups = database.GetCollection<ForumGroup>("forumGroups");
             _forums = database.GetCollection<Forum>("forums");
             _topics = database.GetCollection<Topic>("topics");
@@ -86,14 +84,30 @@ namespace everave.server.Forum
         public Task AddForumGroupAsync(ForumGroup group) =>
             _forumGroups.InsertOneAsync(group);
 
-        public Task DeleteForumGroupAsync(ForumGroup group) =>
-            _forumGroups.DeleteOneAsync(g => g.Id == group.Id);
+        public async Task DeleteForumGroupAsync(ForumGroup group)
+        {
+            var forums = await _forums.Find(f => f.GroupId == group.Id).ToListAsync();
+            foreach (var forum in forums)
+            {
+                await DeleteForumAsync(forum);
+            }
+
+            await _forumGroups.DeleteOneAsync(g => g.Id == group.Id);
+        }
 
         public Task AddForumAsync(Forum forum) =>
             _forums.InsertOneAsync(forum);
 
-        public Task DeleteForumAsync(Forum forum) =>
-            _forums.DeleteOneAsync(f => f.Id == forum.Id);
+        public async Task DeleteForumAsync(Forum forum)
+        {
+            var topics = await _topics.Find(e => e.ForumId == forum.Id).ToListAsync();
+            foreach (var topic in topics)
+            {
+                await DeleteTopicAsync(topic);
+            }
+
+            await _forums.DeleteOneAsync(f => f.Id == forum.Id);
+        }
 
         public async Task AddTopicAsync(Topic topic)
         {
@@ -108,6 +122,14 @@ namespace everave.server.Forum
 
         public async Task DeleteTopicAsync(Topic topic)
         {
+            var posts = await _posts
+                .Find(e => e.TopicId == topic.Id).ToListAsync();
+
+            foreach (var post in posts)
+            {
+                await DeletePostAsync(post);
+            }
+
             await _topics.DeleteOneAsync(t => t.Id == topic.Id);
 
             var update = Builders<Forum>.Update.Inc(f => f.NumberOfTopics, -1);
@@ -124,6 +146,7 @@ namespace everave.server.Forum
             var topicUpdate = Builders<Topic>.Update
                 .Inc(t => t.NumberOfEntries, 1)
                 .Set(t => t.LastEntry, post.Id);
+
             await _topics.UpdateOneAsync(
                 t => t.Id == post.TopicId,
                 topicUpdate
@@ -192,34 +215,6 @@ namespace everave.server.Forum
                             forumLastEntryUpdate
                         );
                     }
-                }
-            }
-        }
-
-        //TODO: Remove after migration is done
-        private static async Task Migrate(IMongoDatabase database)
-        {
-            var list = (await database.ListCollectionNamesAsync()).ToList();
-            if (list.Contains("entries"))
-            {
-                if (list.Contains("posts"))
-                {
-                    var oldCollection = database.GetCollection<BsonDocument>("entries");
-                    var newCollection = database.GetCollection<BsonDocument>("posts");
-
-                    var documents = await oldCollection.Find(FilterDefinition<BsonDocument>.Empty).ToListAsync();
-
-                    // Insert into the new collection
-                    if (documents.Count > 0)
-                    {
-                        await newCollection.InsertManyAsync(documents);
-                    }
-
-                    await database.DropCollectionAsync("entries");
-                }
-                else
-                {
-                    await database.RenameCollectionAsync("entries", "posts");
                 }
             }
         }

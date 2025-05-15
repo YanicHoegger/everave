@@ -9,7 +9,7 @@ namespace everave.server.Services
         IImageStorageService imageStorageService,
         UserManager<ApplicationUser> userManager)
     {
-        private static readonly SlugHelper SlugHelper = new SlugHelper();
+        private static readonly SlugHelper SlugHelper = new();
 
         public async Task<string> Create(Stream imageStream, ApplicationUser user, string fileName)
         {
