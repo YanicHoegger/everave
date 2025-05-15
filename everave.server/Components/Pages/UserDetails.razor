@@ -1,14 +1,13 @@
 ﻿@page "/user-details/{UserId}"
 @rendermode InteractiveServer
 @using everave.server.Components.Common
-@using everave.server.Components.Controllers
 @using everave.server.Services
 @using Microsoft.AspNetCore.Identity
 @using everave.server.UserManagement
 @using Microsoft.AspNetCore.Components.Authorization
 @inject UserManager<ApplicationUser> UserManager
 @inject AuthenticationStateProvider AuthStateProvider
-@inject IImageStorageService ImageStorageService
+@inject AvatarCreationService AvatarCreationService
 
 @if (user == null)
 {
@@ -62,23 +61,9 @@ else
     {
         if (e.File != null && user != null)
         {
-            var fileName = $"{user.UserName}_{Guid.NewGuid()}{Path.GetExtension(e.File.Name)}";
             await using var stream = e.File.OpenReadStream(maxAllowedSize: MaxAllowedSize);
 
-            await using var resizedStream = await ImageProcessingHelper
-                .ResizeImageAsync(stream, 200, 200).ConfigureAwait(false);
-
-            var success = await ImageStorageService.UploadImageAsync(resizedStream, fileName);
-
-            if (success)
-            {
-                if(!string.IsNullOrWhiteSpace(user.ProfilePictureUrl))
-                    await ImageStorageService.DeleteImageAsync(Path.GetFileName(user.ProfilePictureUrl));
-
-                user.ProfilePictureUrl = $"/image/{fileName}";
-
-                await UserManager.UpdateAsync(user);
-            }
+            await AvatarCreationService.Create(stream, user, e.File.Name);
         }
     }
 }

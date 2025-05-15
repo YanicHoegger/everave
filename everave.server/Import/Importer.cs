@@ -3,14 +3,13 @@ using everave.server.Services;
 using everave.server.UserManagement;
 using Microsoft.AspNetCore.Identity;
 using System.Web;
-using System;
 
 namespace everave.server.Import;
 
 public class Importer(IForumService forumService, 
     UserManager<ApplicationUser> userManager, 
     IConfiguration configuration,
-    IImageStorageService imageStorageService)
+    AvatarCreationService avatarCreationService)
 {
     public async Task Import(ImportData importData)
     {
@@ -120,34 +119,22 @@ public class Importer(IForumService forumService,
 
     private async Task FillApplicationUser(ApplicationUser applicationUser, ImportData.User user)
     {
-        await DeleteImage(applicationUser);
-        applicationUser.ProfilePictureUrl = await UploadImage(user.ProfilePictureUrl);
+        await UploadImage(applicationUser, user.ProfilePictureUrl);
 
         applicationUser.Signature = user.Signature;
         applicationUser.CreatedAt = user.CreatedAt;
         applicationUser.UserDetails = user.UserDetails;
     }
 
-    private async Task DeleteImage(ApplicationUser applicationUser)
-    {
-        if(string.IsNullOrWhiteSpace(applicationUser.ProfilePictureUrl))
-            await imageStorageService.DeleteImageAsync(Path.GetFileName(applicationUser.ProfilePictureUrl));
-    }
-
-    private async Task<string> UploadImage(string imageUrl)
+    private async Task UploadImage(ApplicationUser applicationUser, string imageUrl)
     {
         if (string.IsNullOrEmpty(imageUrl))
         {
-            return string.Empty;
+            return;
         }
 
-        var fileName = CreateFileName(imageUrl);
-
         var stream = await (await new HttpClient().GetAsync(imageUrl)).Content.ReadAsStreamAsync();
-
-        await imageStorageService.UploadImageAsync(stream, fileName);
-
-        return $"/image/{fileName}";
+        await avatarCreationService.Create(stream, applicationUser, CreateFileName(imageUrl));
     }
 
     private static string CreateFileName(string imageUrl)
@@ -162,10 +149,9 @@ public class Importer(IForumService forumService,
             fileName = Path.GetFileName(uri.LocalPath);
 
             if(fileName.Contains("?"))
-                //fileName = fileName.Substring(0, fileName.IndexOf("?"));
                 throw new Exception($"File name {fileName} is not valid");
         }
 
-        return $"{Guid.NewGuid()}_{fileName}";
+        return fileName;
     }
 }

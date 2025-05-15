@@ -48,6 +48,7 @@ else
 
 builder.Services.AddSingleton<IForumService, ForumService>();
 builder.Services.AddScoped<Importer>();
+builder.Services.AddScoped<AvatarCreationService>();
 
 var connectionString = builder.Configuration["MongoDbConnectionString"];
 builder.Services.AddSingleton(_ =>
