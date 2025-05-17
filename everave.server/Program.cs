@@ -46,7 +46,8 @@ else
     builder.Services.AddSingleton<IImageStorageService, LocalImageStorageService>();
 }
 
-builder.Services.AddSingleton<IForumService, ForumService>();
+builder.Services.AddScoped<FileReferenceHandler>();
+builder.Services.AddScoped<IForumService, ForumService>();
 builder.Services.AddScoped<Importer>();
 builder.Services.AddScoped<AvatarCreationService>();
 

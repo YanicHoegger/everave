@@ -1,19 +1,19 @@
 ﻿using MongoDB.Bson;
 using MongoDB.Driver;
-using everave.server.UserManagement;
-using Microsoft.AspNetCore.Identity;
 
 namespace everave.server.Forum
 {
     public class ForumService : IForumService
     {
+        private readonly FileReferenceHandler _fileReferenceHandler;
         private readonly IMongoCollection<ForumGroup> _forumGroups;
         private readonly IMongoCollection<Forum> _forums;
         private readonly IMongoCollection<Topic> _topics;
         private readonly IMongoCollection<Post> _posts;
 
-        public ForumService(IMongoDatabase database)
+        public ForumService(IMongoDatabase database, FileReferenceHandler fileReferenceHandler)
         {
+            _fileReferenceHandler = fileReferenceHandler;
             _forumGroups = database.GetCollection<ForumGroup>("forumGroups");
             _forums = database.GetCollection<Forum>("forums");
             _topics = database.GetCollection<Topic>("topics");
@@ -167,6 +167,8 @@ namespace everave.server.Forum
 
         public async Task DeletePostAsync(Post post)
         {
+            await _fileReferenceHandler.DeleteFileReferences(post);
+
             await _posts.DeleteOneAsync(e => e.Id == post.Id);
 
             var topicUpdate = Builders<Topic>.Update.Inc(t => t.NumberOfEntries, -1);
