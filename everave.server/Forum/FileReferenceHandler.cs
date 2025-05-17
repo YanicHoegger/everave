@@ -5,6 +5,8 @@ namespace everave.server.Forum
 {
     public class FileReferenceHandler(IImageStorageService imageStorageService)
     {
+        private static readonly Regex ImageRegex = new("<img[^>]*src=[\"']([^\"']+)[\"'][^>]*>", RegexOptions.IgnoreCase);
+
         public async Task DeleteFileReferences(Post post)
         {
             var content = post.HtmlContent;
@@ -19,8 +21,7 @@ namespace everave.server.Forum
         {
             var filenames = new List<string>();
 
-            var regex = new Regex("<img[^>]*src=[\"']([^\"']+)[\"'][^>]*>", RegexOptions.IgnoreCase);
-            var matches = regex.Matches(htmlContent);
+            var matches = ImageRegex.Matches(htmlContent);
 
             foreach (Match match in matches)
             {

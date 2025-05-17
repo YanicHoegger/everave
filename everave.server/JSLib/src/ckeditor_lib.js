@@ -26,10 +26,12 @@
 	TableColumnResize,
 	TableToolbar,
 	TextTransformation,
-	SimpleUploadAdapter
+	SimpleUploadAdapter,
 } from 'ckeditor5';
 
 import SmileyPlugin from './smileys.js';
+
+import MentionCustomization from './mentionCustomization.js';
 
 export function initializeCKEditor(editorId, dotNetHelper, smileys) {
     ClassicEditor
@@ -54,6 +56,7 @@ export function initializeCKEditor(editorId, dotNetHelper, smileys) {
 				List,
 				MediaEmbed,
 				Mention,
+				MentionCustomization,
 				Paragraph,
 				PasteFromOffice,
 				PictureEditing,
@@ -168,6 +171,23 @@ export function initializeCKEditor(editorId, dotNetHelper, smileys) {
 			},
 			smilyes: {
 				smileySet: smileys
+			},
+			mention: {
+				feeds: [
+					{
+						marker: '@',
+						feed: async query => {
+							const response = await fetch(`/api/mentions?query=${encodeURIComponent(query)}`);
+							const data = await response.json();
+							return data.map(user => ({
+								id: '@' + user.name,
+								name: user.name,
+								link: `/user-details/${user.id}`
+							}));
+						},
+						minimumCharacters: 1
+					}
+				]
 			}
         })
         .then(editor => {
