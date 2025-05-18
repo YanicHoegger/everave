@@ -47,6 +47,7 @@ else
 }
 
 builder.Services.AddScoped<FileReferenceHandler>();
+builder.Services.AddScoped<UserFinderService>();
 builder.Services.AddScoped<IForumService, ForumService>();
 builder.Services.AddScoped<Importer>();
 builder.Services.AddScoped<AvatarCreationService>();

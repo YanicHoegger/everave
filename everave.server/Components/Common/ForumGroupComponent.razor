@@ -1,4 +1,5 @@
 ﻿@using everave.server.Forum
+@using everave.server.UserManagement
 @using Microsoft.AspNetCore.Components.Authorization
 @inject IForumService ForumService
 @inject AuthenticationStateProvider AuthProvider
@@ -118,16 +119,8 @@ else
         editContext.OnValidationRequested += HandleValidationRequested;
         messageStore = new(editContext);
 
-        await CheckIfAdmin();
+        isAdmin = await AuthProvider.IsAdmin();
         await LoadData();
-    }
-
-    private async Task CheckIfAdmin()
-    {
-        var authState = await AuthProvider.GetAuthenticationStateAsync();
-        var user = authState.User;
-
-        isAdmin = user.Identity?.IsAuthenticated == true && user.IsInRole("Admin");
     }
 
     private async Task LoadData()

@@ -1,4 +1,5 @@
 ﻿using System.Security.Claims;
+using everave.server.Components.Pages;
 using Microsoft.AspNetCore.Components.Authorization;
 using MongoDB.Bson;
 
@@ -17,6 +18,14 @@ namespace everave.server.UserManagement
             }
 
             return null;
+        }
+
+        public static async Task<bool> IsAdmin(this AuthenticationStateProvider authenticationStateProvider)
+        {
+            var authState = await authenticationStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+
+            return user.Identity?.IsAuthenticated == true && user.IsInRole(ApplicationUser.AdminRole);
         }
     }
 }

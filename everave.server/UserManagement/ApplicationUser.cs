@@ -12,7 +12,7 @@ namespace everave.server.UserManagement
         public UserDetails UserDetails { get; set; }
     }
 
-    public class UserDetails
+    public record UserDetails
     {
         public Gender Gender { get; set; }
         public DateTime? BirthDate { get; set; }
@@ -25,6 +25,7 @@ namespace everave.server.UserManagement
     {
         Male = 0,
         Female = 1,
-        Other = 3
+        Other = 3,
+        Unspecified
     }
 }

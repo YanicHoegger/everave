@@ -151,6 +151,24 @@ h1:focus {
         border-color: #487e8d; /* Border color on hover */
     }
 
+#search-button.btn-outline-primary {
+    color: #487e8d; /* Text color */
+    border-color: #487e8d; /* Border color */
+}
+
+    #search-button.btn-outline-primary:hover {
+        color: #fff; /* Text color on hover */
+        background-color: #487e8d; /* Background color on hover */
+        border-color: #487e8d; /* Border color on hover */
+    }
+
+    #search-button.btn-outline-primary:active {
+    color: #fff;
+    background-color: #487e8d;
+    border-color: #487e8d;
+    box-shadow: none;      /* Remove shadow if added by Bootstrap */
+    
+
 /* Ensure the navigation container aligns to the left */
 .navigation-container {
     overflow: hidden; /* Hide overflowing content */

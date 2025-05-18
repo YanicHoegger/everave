@@ -97,7 +97,7 @@ else
                     HtmlContent = entry.HtmlContent,
                     CreatedAt = entry.CreatedAt,
                     CreatorName = user?.UserName ?? "Unknown",
-                    CreatorProfilePictureUrl = user?.ProfilePictureUrl ?? "/images/default-profile.png",
+                    CreatorProfilePictureUrl = user.GetProfilePictureUrl(),
                     EntryId = entry.Id.ToString()
                 });
         }
@@ -157,7 +157,7 @@ else
                     HtmlContent = post.HtmlContent,
                     CreatedAt = post.CreatedAt,
                     CreatorName = user?.UserName ?? "Unknown",
-                    CreatorProfilePictureUrl = user?.ProfilePictureUrl ?? "/images/default-profile.png"
+                    CreatorProfilePictureUrl = user.GetProfilePictureUrl()
                 });
 
             newContent = string.Empty;

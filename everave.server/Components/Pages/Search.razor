@@ -1,0 +1,66 @@
+﻿@page "/search"
+@rendermode InteractiveServer
+@using everave.server.Services
+@using everave.server.UserManagement
+@using everave.server.Components.Common
+@inject UserFinderService UserService
+
+<h3>User Search</h3>
+
+<div class="mb-3">
+    <input value="@searchQuery" @oninput="OnSearchChanged" class="form-control" placeholder="Search users..." />
+</div>
+
+@if (isLoading)
+{
+    <p>Searching...</p>
+}
+else if (searchResults != null)
+{
+    @if (searchResults.Count == 0)
+    {
+        <p>No users found.</p>
+    }
+    else
+    {
+        <ul class="list-group">
+            @foreach (var user in searchResults)
+            {
+                <li class="list-group-item">
+                    <UserLink UserId="@user.Id.ToString()"></UserLink>
+                </li>
+            }
+        </ul>
+    }
+}
+
+@code {
+    private string searchQuery = string.Empty;
+    private List<ApplicationUser>? searchResults;
+    private bool isLoading = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        searchResults = new List<ApplicationUser>();
+    }
+
+    private async Task OnSearchChanged(ChangeEventArgs e)
+    {
+        searchQuery = e.Value?.ToString() ?? string.Empty;
+        await PerformSearch();
+    }
+
+    private async Task PerformSearch()
+    {
+        if (string.IsNullOrWhiteSpace(searchQuery))
+        {
+            searchResults = [];
+            return;
+        }
+
+        isLoading = true;
+        searchResults = await UserService.FindUsers(searchQuery);
+        isLoading = false;
+        StateHasChanged();
+    }
+}
