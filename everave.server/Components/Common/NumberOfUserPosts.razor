@@ -1,0 +1,31 @@
+﻿@using everave.server.UserManagement
+@using Microsoft.AspNetCore.Identity
+@inject UserManager<ApplicationUser> UserManager
+@inject NavigationManager NavigationManager
+
+@if (user != null)
+{
+    <a href="javascript:void(0)" @onclick="NavigateToUserDetails" class="text-decoration-none">
+        Beiträge: @user.NumberOfPosts
+    </a>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public string UserId { get; set; }
+
+    private ApplicationUser? user;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!string.IsNullOrWhiteSpace(UserId))
+        {
+            user = await UserManager.FindByIdAsync(UserId).ConfigureAwait(false);
+        }
+    }
+
+    private void NavigateToUserDetails()
+    {
+        NavigationManager.NavigateTo($"/user-posts/{UserId}");
+    }
+}

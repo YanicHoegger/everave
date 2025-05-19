@@ -1,0 +1,101 @@
+﻿@page "/user-posts/{UserId}/{page?}"
+@using everave.server.Forum
+@using everave.server.UserManagement
+@using Microsoft.AspNetCore.Identity
+@using everave.server.Components.Common
+@inject UserManager<ApplicationUser> UserManager
+@inject IForumService ForumService
+
+<div class="card sticky-top">
+    <div class="card-header bg-primary text-white  d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Beiträge von @user?.UserName</h5>
+        <PageNavigation BaseUrl="@($"/user-posts/{UserId}")" CurrentPage="@GetCurrentPage()" TotalPages="@totalPages" />
+    </div>
+</div>
+<div class="overflow-auto" style="max-height: calc(100vh - 140px);">
+
+    @foreach (var post in posts)
+    {
+        <div class="entry-card d-flex mb-4">
+            <div class="creator-info text-center me-3">
+                <p>Forum: @post.ForumName</p>
+                <p>Thema: @post.TopicName</p>
+            </div>
+
+            <div class="entry-content flex-grow-1">
+                <a href="@($"/topic/{post.TopicId}/{post.TopicPage}#{post.PostId}")">
+                    <div class="entry-header text-muted mb-2">
+                        <small>Erstellt am: @post.CreatedAt.PrintCET()</small>
+                    </div>
+                    <div class="entry-body ck-content">
+                        @((MarkupString)post.HtmlContent)
+                    </div>
+                </a>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public string UserId { get; set; }
+    [Parameter]
+    public string? page { get; set; }
+
+    private ApplicationUser? user;
+    private int totalPages;
+    private List<PostDisplay> posts = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        user = await UserManager.FindByIdAsync(UserId);
+
+        totalPages = (int)Math.Ceiling((double)user.NumberOfPosts / ForumService.PageSize);
+
+        var postsByUserIdAsync = await ForumService.GetPostsByUserIdAsync(user.Id);
+        foreach (var post in postsByUserIdAsync)
+        {
+            var postDisplay = await GetPostDisplay(post);
+            posts.Add(postDisplay);
+        }
+    }
+
+    private async Task<PostDisplay> GetPostDisplay(Post post)
+    {
+        var topic = await ForumService.GetTopicByIdAsync(post.TopicId);
+        var forum = await ForumService.GetForumAsync(topic.ForumId);
+        var topicPage = await ForumService.GetPageOfPostAsync(post.Id);
+
+        return new PostDisplay
+            {
+                PostId = post.Id.ToString(),
+                HtmlContent = post.HtmlContent,
+                CreatedAt = post.CreatedAt,
+                ForumName = forum.Name,
+                TopicName = topic.Title,
+                TopicId = topic.Id.ToString(),
+                TopicPage = topicPage
+            };
+    }
+
+    private int GetCurrentPage()
+    {
+        if (page != null && int.TryParse(page, out var parsedPage))
+        {
+            return parsedPage;
+        }
+
+        return 1;
+    }
+
+    private class PostDisplay
+    {
+        public string PostId { get; set; }
+        public string HtmlContent { get; set; } = string.Empty;
+        public DateTime CreatedAt { get; set; }
+        public string? ForumName { get; set; } = string.Empty;
+        public string TopicName { get; set; } = string.Empty;
+        public string TopicId { get; set; } = string.Empty;
+        public int TopicPage { get; set; }
+    }
+}

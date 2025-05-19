@@ -12,6 +12,7 @@ namespace everave.server.Forum
         Task<List<Topic>> GetTopicsByForumIdAsync(ObjectId forumId, int page);
         Task<Topic> GetTopicByIdAsync(ObjectId topicId);
         Task<List<Post>> GetPostsByTopicIdAsync(ObjectId topicId, int page = 1);
+        Task<List<Post>> GetPostsByUserIdAsync(ObjectId userId, int page = 1);
         Task<Post> GetPostById(ObjectId entryId);
 
         Task AddForumGroupAsync(ForumGroup group);

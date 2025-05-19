@@ -1,4 +1,6 @@
-﻿using MongoDB.Bson;
+﻿using everave.server.UserManagement;
+using Microsoft.AspNetCore.Identity;
+using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace everave.server.Forum
@@ -6,14 +8,16 @@ namespace everave.server.Forum
     public class ForumService : IForumService
     {
         private readonly FileReferenceHandler _fileReferenceHandler;
+        private readonly UserManager<ApplicationUser> _userManager;
         private readonly IMongoCollection<ForumGroup> _forumGroups;
         private readonly IMongoCollection<Forum> _forums;
         private readonly IMongoCollection<Topic> _topics;
         private readonly IMongoCollection<Post> _posts;
 
-        public ForumService(IMongoDatabase database, FileReferenceHandler fileReferenceHandler)
+        public ForumService(IMongoDatabase database, FileReferenceHandler fileReferenceHandler, UserManager<ApplicationUser> userManager)
         {
             _fileReferenceHandler = fileReferenceHandler;
+            _userManager = userManager;
             _forumGroups = database.GetCollection<ForumGroup>("forumGroups");
             _forums = database.GetCollection<Forum>("forums");
             _topics = database.GetCollection<Topic>("topics");
@@ -61,6 +65,16 @@ namespace everave.server.Forum
                 .Limit(PageSize)
                 .SortBy(e => e.CreatedAt)
                 .ToListAsync();
+
+        public Task<List<Post>> GetPostsByUserIdAsync(ObjectId userId, int page = 1)
+        {
+            return _posts
+                .Find(e => e.UserId == userId)
+                .Skip((page - 1) * PageSize)
+                .Limit(PageSize)
+                .SortByDescending(e => e.CreatedAt)
+                .ToListAsync();
+        }
 
         public Task<Post> GetPostById(ObjectId entryId) =>
             _posts.Find(e => e.Id == entryId).FirstAsync();
@@ -163,6 +177,13 @@ namespace everave.server.Forum
                     forumUpdate
                 );
             }
+
+            var user = await _userManager.FindByIdAsync(post.UserId.ToString());
+            if (user != null)
+            {
+                user.NumberOfPosts++;
+                await _userManager.UpdateAsync(user);
+            }
         }
 
         public async Task DeletePostAsync(Post post)
@@ -218,6 +239,13 @@ namespace everave.server.Forum
                         );
                     }
                 }
+            }
+
+            var user = await _userManager.FindByIdAsync(post.UserId.ToString());
+            if (user != null)
+            {
+                user.NumberOfPosts--;
+                await _userManager.UpdateAsync(user);
             }
         }
     }
