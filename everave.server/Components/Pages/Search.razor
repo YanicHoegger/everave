@@ -4,27 +4,28 @@
 @using everave.server.UserManagement
 @using everave.server.Components.Common
 @inject UserFinderService UserService
+@inject ISearchService SearchService
 
 <h3>User Search</h3>
 
 <div class="mb-3">
-    <input value="@searchQuery" @oninput="OnSearchChanged" class="form-control" placeholder="Search users..." />
+    <input value="@userSearchQuery" @oninput="OnUserSearchChanged" class="form-control" placeholder="Search users..." />
 </div>
 
 @if (isLoading)
 {
     <p>Searching...</p>
 }
-else if (searchResults != null)
+else if (userSearchResults != null)
 {
-    @if (searchResults.Count == 0)
+    @if (userSearchResults.Count == 0)
     {
         <p>No users found.</p>
     }
     else
     {
         <ul class="list-group">
-            @foreach (var user in searchResults)
+            @foreach (var user in userSearchResults)
             {
                 <li class="list-group-item">
                     <UserLink UserId="@user.Id.ToString()"></UserLink>
@@ -34,32 +35,51 @@ else if (searchResults != null)
     }
 }
 
+<div class="mb-3">
+    <input value="@searchQuery" @oninput="OnSearchChanged" class="form-control" placeholder="Search forum..." />
+</div>
+
+<SearchResult SearchResults="@searchResults"></SearchResult>
+
 @code {
-    private string searchQuery = string.Empty;
-    private List<ApplicationUser>? searchResults;
+    private string userSearchQuery = string.Empty;
+    private List<ApplicationUser>? userSearchResults;
     private bool isLoading = false;
+
+    private string searchQuery = string.Empty;
+    private List<SearchDocument>? searchResults = [];
+
 
     protected override async Task OnInitializedAsync()
     {
-        searchResults = new List<ApplicationUser>();
+        userSearchResults = new List<ApplicationUser>();
+    }
+
+    private async Task OnUserSearchChanged(ChangeEventArgs e)
+    {
+        userSearchQuery = e.Value?.ToString() ?? string.Empty;
+        await PerformSearch();
     }
 
     private async Task OnSearchChanged(ChangeEventArgs e)
     {
         searchQuery = e.Value?.ToString() ?? string.Empty;
-        await PerformSearch();
+
+        var results = await SearchService.SearchPostsAsync(searchQuery);
+
+        searchResults = results.ToList();
     }
 
     private async Task PerformSearch()
     {
-        if (string.IsNullOrWhiteSpace(searchQuery))
+        if (string.IsNullOrWhiteSpace(userSearchQuery))
         {
-            searchResults = [];
+            userSearchResults = [];
             return;
         }
 
         isLoading = true;
-        searchResults = await UserService.FindUsers(searchQuery);
+        userSearchResults = await UserService.FindUsers(userSearchQuery);
         isLoading = false;
         StateHasChanged();
     }

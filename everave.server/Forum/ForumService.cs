@@ -1,4 +1,5 @@
-﻿using everave.server.UserManagement;
+﻿using everave.server.Services;
+using everave.server.UserManagement;
 using Microsoft.AspNetCore.Identity;
 using MongoDB.Bson;
 using MongoDB.Driver;
@@ -9,15 +10,20 @@ namespace everave.server.Forum
     {
         private readonly FileReferenceHandler _fileReferenceHandler;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly ForumNotifier _forumNotifier;
         private readonly IMongoCollection<ForumGroup> _forumGroups;
         private readonly IMongoCollection<Forum> _forums;
         private readonly IMongoCollection<Topic> _topics;
         private readonly IMongoCollection<Post> _posts;
 
-        public ForumService(IMongoDatabase database, FileReferenceHandler fileReferenceHandler, UserManager<ApplicationUser> userManager)
+        public ForumService(IMongoDatabase database, 
+            FileReferenceHandler fileReferenceHandler, 
+            UserManager<ApplicationUser> userManager,
+            ForumNotifier forumNotifier)
         {
             _fileReferenceHandler = fileReferenceHandler;
             _userManager = userManager;
+            _forumNotifier = forumNotifier;
             _forumGroups = database.GetCollection<ForumGroup>("forumGroups");
             _forums = database.GetCollection<Forum>("forums");
             _topics = database.GetCollection<Topic>("topics");
@@ -132,6 +138,8 @@ namespace everave.server.Forum
                 f => f.Id == topic.ForumId,
                 update
             );
+
+            _forumNotifier.OnTopicAdded(topic);
         }
 
         public async Task DeleteTopicAsync(Topic topic)
@@ -151,6 +159,8 @@ namespace everave.server.Forum
                 f => f.Id == topic.ForumId,
                 update
             );
+
+            _forumNotifier.OnTopicDeleted(topic);
         }
 
         public async Task AddPostAsync(Post post)
@@ -184,6 +194,8 @@ namespace everave.server.Forum
                 user.NumberOfPosts++;
                 await _userManager.UpdateAsync(user);
             }
+
+            _forumNotifier.OnPostAdded(post);
         }
 
         public async Task DeletePostAsync(Post post)
@@ -247,6 +259,8 @@ namespace everave.server.Forum
                 user.NumberOfPosts--;
                 await _userManager.UpdateAsync(user);
             }
+
+            _forumNotifier.OnPostDeleted(post);
         }
     }
 }

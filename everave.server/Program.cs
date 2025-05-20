@@ -25,7 +25,6 @@ builder.Services.AddRazorComponents()
 builder.Services.AddControllers();
 builder.Services.AddHttpClient();
 
-
 var useAzureBlobStorage = builder.Configuration.GetValue<bool>("UseAzureBlobStorage");
 
 if (useAzureBlobStorage)
@@ -46,6 +45,8 @@ else
     builder.Services.AddSingleton<IImageStorageService, LocalImageStorageService>();
 }
 
+builder.Services.AddSingleton<ForumNotifier>();
+builder.Services.AddSingleton<IForumNotifier>(x => x.GetService<ForumNotifier>());
 builder.Services.AddScoped<FileReferenceHandler>();
 builder.Services.AddScoped<UserFinderService>();
 builder.Services.AddScoped<IForumService, ForumService>();
@@ -92,6 +93,17 @@ else
 {
     builder.Services.AddScoped<IAzureDeploymentService, EmptyAzureDeploymentService>();
     builder.Services.AddScoped<IGitHubAccess, NoGitHubAccess>();
+}
+
+if (builder.Configuration.GetValue<bool>("UseElasticSearch"))
+{
+    builder.Services.AddHostedService<ElasticSearchHostedService>();
+    builder.Services.AddHostedService<ElasticIndexer>();
+    builder.Services.AddScoped<ISearchService, ElasticSearch>();
+}
+else
+{
+    builder.Services.AddScoped<ISearchService, EmptySearch>();
 }
 
 var app = builder.Build();
