@@ -1,4 +1,5 @@
 ﻿@using everave.server.Forum
+@using everave.server.UserManagement
 @using Microsoft.AspNetCore.Components.Authorization
 @inject IForumService ForumService
 @inject AuthenticationStateProvider AuthProvider
@@ -49,7 +50,7 @@ else
                             <td>@forum.NumberOfTopics</td>
                             <td>@forum.NumberOfEntries</td>
                             <td>
-                                <LastEntryDetails EntryId="@(forum.LastEntry)" ShowTopic="true" />
+                                <LastPostDetails PostId="@(forum.LastEntry)" ShowTopic="true" />
                             </td>
                             @if (isAdmin)
                             {
@@ -118,16 +119,8 @@ else
         editContext.OnValidationRequested += HandleValidationRequested;
         messageStore = new(editContext);
 
-        await CheckIfAdmin();
+        isAdmin = await AuthProvider.IsAdmin();
         await LoadData();
-    }
-
-    private async Task CheckIfAdmin()
-    {
-        var authState = await AuthProvider.GetAuthenticationStateAsync();
-        var user = authState.User;
-
-        isAdmin = user.Identity?.IsAuthenticated == true && user.IsInRole("Admin");
     }
 
     private async Task LoadData()
@@ -166,7 +159,7 @@ else
         if (ForumGroup != null)
         {
             await ForumService.DeleteForumGroupAsync(ForumGroup).ConfigureAwait(false);
-            await OnGroupDeleted.InvokeAsync(ForumGroup);
+            await InvokeAsync(() => OnGroupDeleted.InvokeAsync(ForumGroup));
         }
     }
 

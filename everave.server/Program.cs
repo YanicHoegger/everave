@@ -7,6 +7,7 @@ using everave.server.Components.GitHub;
 using everave.server.Forum;
 using everave.server.Import;
 using everave.server.Services;
+using everave.server.Services.Search;
 using everave.server.UserManagement;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -24,7 +25,6 @@ builder.Services.AddRazorComponents()
 
 builder.Services.AddControllers();
 builder.Services.AddHttpClient();
-
 
 var useAzureBlobStorage = builder.Configuration.GetValue<bool>("UseAzureBlobStorage");
 
@@ -46,8 +46,13 @@ else
     builder.Services.AddSingleton<IImageStorageService, LocalImageStorageService>();
 }
 
-builder.Services.AddSingleton<IForumService, ForumService>();
+builder.Services.AddSingleton<ForumNotifier>();
+builder.Services.AddSingleton<IForumNotifier>(x => x.GetService<ForumNotifier>());
+builder.Services.AddScoped<FileReferenceHandler>();
+builder.Services.AddScoped<UserFinderService>();
+builder.Services.AddScoped<IForumService, ForumService>();
 builder.Services.AddScoped<Importer>();
+builder.Services.AddScoped<AvatarCreationService>();
 
 var connectionString = builder.Configuration["MongoDbConnectionString"];
 builder.Services.AddSingleton(_ =>
@@ -61,10 +66,12 @@ builder.Services.AddIdentityMongoDbProvider<ApplicationUser, MongoRole>(identity
     identityOptions.Password.RequireDigit = false;
     identityOptions.Password.RequireNonAlphanumeric = false;
     identityOptions.Password.RequiredLength = 6;
+    identityOptions.User.AllowedUserNameCharacters = null;
 }, mongoIdentityOptions =>
 {
     mongoIdentityOptions.ConnectionString = connectionString;
 })
+//.AddUserValidator<PhpBBUsernameValidator>()
 .AddRoles<MongoRole>();
 
 builder.Services.AddAuthentication(options =>
@@ -87,6 +94,23 @@ else
 {
     builder.Services.AddScoped<IAzureDeploymentService, EmptyAzureDeploymentService>();
     builder.Services.AddScoped<IGitHubAccess, NoGitHubAccess>();
+}
+
+if (builder.Configuration.GetValue<bool>("UseCoginitiveSearch"))
+{
+    builder.Services.AddHostedService<CognitiveSearchHostedService>();
+    builder.Services.AddHostedService<CognitiveSearchIndexer>();
+    builder.Services.AddScoped<ISearchService, CognitiveSearchService>();
+}
+else if (builder.Configuration.GetValue<bool>("UseElasticSearch"))
+{
+    builder.Services.AddHostedService<ElasticSearchHostedService>();
+    builder.Services.AddHostedService<ElasticIndexer>();
+    builder.Services.AddScoped<ISearchService, ElasticSearch>();
+}
+else
+{
+    builder.Services.AddScoped<ISearchService, EmptySearch>();
 }
 
 var app = builder.Build();

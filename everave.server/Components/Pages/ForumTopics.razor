@@ -56,7 +56,7 @@ else
                             </td>
                             <td>@topic.Topic.NumberOfEntries</td>
                             <td>
-                                <LastEntryDetails EntryId="@(topic.Topic.LastEntry)" ShowTopic="false" />
+                                <LastPostDetails PostId="@(topic.Topic.LastEntry)" ShowTopic="false" />
                             </td>
                             <AuthorizeView Roles="@ApplicationUser.AdminRole">
                                 <Delete Title="Thema löschen"

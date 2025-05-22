@@ -1,4 +1,6 @@
-﻿namespace everave.server.Import
+﻿using everave.server.UserManagement;
+
+namespace everave.server.Import
 {
     public class ImportData
     {
@@ -7,8 +9,12 @@
 
         public class User
         {
-            public required string Username { get; set; }
+            public required string UserName { get; set; }
             public required string EncryptedPassword { get; set; }
+            public string Signature { get; set; }
+            public DateTime CreatedAt { get; set; }
+            public string ProfilePictureUrl { get; set; }
+            public UserDetails UserDetails { get; set; }
         }
 
         public class ForumGroup
@@ -29,10 +35,10 @@
             public required string Title { get; set; }
             public required string Author { get; set; }
             public required DateTime CreatedAt { get; set; }
-            public required List<Entry> Entries { get; set; }
+            public required List<Post> Posts { get; set; }
         }
 
-        public class Entry
+        public class Post
         {
             public required string Content { get; set; }
             public required string Author { get; set; }

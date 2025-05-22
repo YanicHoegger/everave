@@ -97,10 +97,10 @@ else
 
     private Task HandleGroupDeleted(ForumGroup deletedGroup)
     {
-        forumsByGroup?.Remove(deletedGroup);
-        StateHasChanged();
-
-        return Task.CompletedTask;
+        return InvokeAsync(() =>
+        {
+            forumsByGroup?.Remove(deletedGroup);
+        });
     }
 
     public class NewGroup

@@ -1,0 +1,82 @@
+﻿@using System.Globalization
+@using everave.server.Forum
+@using everave.server.Services
+@using MongoDB.Bson
+@inject IForumService ForumService
+
+@if (SearchResults == null || !SearchResults.Any())
+{
+    <p class="text-muted">Keine Ergebnisse gefunden.</p>
+}
+else
+{
+    <div class="row g-3">
+        @foreach (var result in searchDisplays)
+        {
+            <div class="col-md-6 col-lg-4">
+                @if (result.SearchDocument.Type == SearchType.Topic)
+                {
+                    <a href="@result.Link">
+                        <div class="card border-primary h-100">
+                            <div class="card-body">
+                                <h5 class="card-title text-primary">Thema</h5>
+                                <p class="card-text">@result.SearchDocument.Topic</p>
+                            </div>
+                            <div class="card-footer text-muted small">
+                                Erfasst am @result.SearchDocument.CreatedAt.ToString("g", CultureInfo.GetCultureInfo("de-DE"))
+                            </div>
+                        </div>
+                    </a>
+                }
+                else if (result.SearchDocument.Type == SearchType.Post)
+                {
+                    <a href="@result.Link">
+                        <div class="card border-secondary h-100">
+                            <div class="card-body">
+                                <h5 class="card-title text-secondary">Beitrag</h5>
+                                <div class="entry-body ck-content">
+                                    @((MarkupString)result.SearchDocument.Content)
+                                </div>
+                            </div>
+                            <div class="card-footer text-muted small">
+                                Erfasst am @result.SearchDocument.CreatedAt.ToString("g", CultureInfo.GetCultureInfo("de-DE"))
+                            </div>
+                        </div>
+                    </a>
+                }
+            </div>
+        }
+    </div>
+}
+
+@code {
+    [Parameter]
+    public List<SearchDocument> SearchResults { get; set; } = new();
+
+    private List<SearchDisplay> searchDisplays = new();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        searchDisplays = [];
+        foreach (var result in SearchResults)
+        {
+            searchDisplays.Add(new SearchDisplay
+            {
+                SearchDocument = result,
+                Link = result.Type == SearchType.Topic ? $"/topic/{result.Id}" : await GetLink(result)
+            });
+        }
+    }
+
+    private async Task<string> GetLink(SearchDocument searchDocument)
+    {
+        var pageOfPostAsync = await ForumService.GetPageOfPostAsync(new ObjectId(searchDocument.Id));
+        return $"/topic/{searchDocument.TopicId}/{pageOfPostAsync}#{searchDocument.Id}";
+    }
+
+    private class SearchDisplay
+    {
+        public SearchDocument SearchDocument { get; set; } = new();
+        public string Link { get; set; } = string.Empty;
+    }
+}

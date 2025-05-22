@@ -4,20 +4,20 @@
 @inject NavigationManager NavigationManager
 @inject IForumService ForumService
 
-@if (EntryId != null && lastEntryDetails != null)
+@if (PostId != null && lastPostDetails != null)
 {
     <div class="entry-preview" style="cursor: pointer;">
         <div class="entry-content" @onclick="NavigateToEntry">
-            <p style="margin-bottom: 2px;">@lastEntryDetails!.HtmlContent</p>
+            <p style="margin-bottom: 2px;">@lastPostDetails!.HtmlContent</p>
         </div>
         @if (ShowTopic)
         {
             <div class="entry-topic" @onclick="NavigateToTopic">
-                <small>@lastEntryDetails.TopicTitle</small>
+                <small>@lastPostDetails.TopicTitle</small>
             </div>
         }
         <div class="entry-meta text-muted">
-            <small>Am @(lastEntryDetails.CreatedAt.PrintCET()) von <UserLink UserId="@lastEntryDetails!.Author.ToString()" /></small>
+            <small>Am @(lastPostDetails.CreatedAt.PrintCET()) von <UserLink UserId="@lastPostDetails!.Author.ToString()" /></small>
         </div>
     </div>
 }
@@ -29,28 +29,28 @@ else
 @code {
 
     [Parameter, EditorRequired]
-    public ObjectId? EntryId { get; set; }
+    public ObjectId? PostId { get; set; }
     [Parameter]
     public bool ShowTopic { get; set; } = true;
 
-    private Details? lastEntryDetails;
+    private Details? lastPostDetails;
     private Topic? Topic;
-    private Entry? LastEntry;
+    private Post? LastPost;
 
     protected override async Task OnInitializedAsync()
     {
-        if (EntryId == null)
+        if (PostId == null)
             return;
 
-        LastEntry = await ForumService.GetEntryById((ObjectId)EntryId).ConfigureAwait(false);
-        Topic = await ForumService.GetTopicByIdAsync(LastEntry.TopicId).ConfigureAwait(false);
+        LastPost = await ForumService.GetPostById((ObjectId)PostId).ConfigureAwait(false);
+        Topic = await ForumService.GetTopicByIdAsync(LastPost.TopicId).ConfigureAwait(false);
 
-        lastEntryDetails = new Details
+        lastPostDetails = new Details
             {
                 TopicTitle = Topic.Title,
-                CreatedAt = LastEntry.CreatedAt,
-                Author = LastEntry.UserId,
-                HtmlContent = TruncateHtml(LastEntry.HtmlContent)
+                CreatedAt = LastPost.CreatedAt,
+                Author = LastPost.UserId,
+                HtmlContent = TruncateHtml(LastPost.HtmlContent)
             };
     }
 
@@ -69,8 +69,8 @@ else
 
     private async Task NavigateToEntry()
     {
-        var page = await ForumService.GetPageOfEntryAsync((ObjectId)EntryId!);
-        NavigationManager.NavigateTo($"/topic/{Topic!.Id.ToString()}/{page}#{EntryId}");
+        var page = await ForumService.GetPageOfPostAsync((ObjectId)PostId!);
+        NavigationManager.NavigateTo($"/topic/{Topic!.Id.ToString()}/{page}#{PostId}");
     }
 
     private void NavigateToTopic()

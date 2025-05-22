@@ -2,7 +2,7 @@
 
 namespace everave.server.Forum
 {
-    public class Entry
+    public class Post
     {
         public ObjectId Id { get; set; }
         public ObjectId TopicId { get; set; }

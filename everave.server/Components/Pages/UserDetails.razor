@@ -1,14 +1,18 @@
 ﻿@page "/user-details/{UserId}"
 @rendermode InteractiveServer
+@using AspNetCore.Identity.Mongo.Model
 @using everave.server.Components.Common
-@using everave.server.Components.Controllers
 @using everave.server.Services
 @using Microsoft.AspNetCore.Identity
 @using everave.server.UserManagement
+@using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
+@using MongoDB.Driver.Linq
+@attribute [Authorize]
 @inject UserManager<ApplicationUser> UserManager
 @inject AuthenticationStateProvider AuthStateProvider
-@inject IImageStorageService ImageStorageService
+@inject AvatarCreationService AvatarCreationService
+@inject RoleManager<MongoRole> RoleManager
 
 @if (user == null)
 {
@@ -16,24 +20,167 @@
 }
 else
 {
-    <div class="card">
-        <div class="card-header">
-            <h5>@user.UserName</h5>
-        </div>
-        <div class="card-body">
-            <div class="d-flex align-items-end">
-                <img src="@ProfilePictureUrl" alt="Profile Picture" class="img-thumbnail" style="max-width: 200px;" />
-                @if (isCurrentUser)
-                {
-                    <div class="ms-3">
-                        <label class="btn btn-primary">
-                            Avatar wechseln
-                            <InputFile OnChange="HandleImageUpload" style="display: none;" />
-                        </label>
-                    </div>
-                }
+    <div class="container mt-4">
+        <div class="card">
+            <div class="card-header">
+                <h5>@user.UserName</h5>
             </div>
         </div>
+
+        <div class="text-center mb-3">
+            @if (IsEditing)
+            {
+                <label class="btn btn-outline-primary">
+                    Upload Profile Image
+                    <InputFile OnChange="HandleImageUpload" accept="image/*" style="display:none" />
+                </label>
+
+                @if (!string.IsNullOrEmpty(PreviewImageUrl))
+                {
+                    <div class="mt-2">
+                        <img src="@PreviewImageUrl"
+                             class="img-thumbnail"
+                             style="max-height: 200px; max-width: 100%;" />
+                    </div>
+                }
+            }
+            else if (!string.IsNullOrEmpty(ImageUrl))
+            {
+                <img src="@ImageUrl"
+                     class="img-thumbnail"
+                     style="max-height: 200px; max-width: 100%;" />
+            }
+            <NumberOfUserPosts UserId="@UserId" />
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-body">
+                <h5 class="card-title">Details</h5>
+                <ul class="list-group list-group-flush">
+                    @if (IsEditing || Details.Gender != Gender.Unspecified)
+                    {
+                        <li class="list-group-item">
+                            <strong>Gender: </strong>
+                            @if (IsEditing)
+                            {
+                                <select class="form-select" @bind="Details.Gender">
+                                    @foreach (var g in Enum.GetValues<Gender>())
+                                    {
+                                        <option value="@g">@g</option>
+                                    }
+                                </select>
+                            }
+                            else
+                            {
+                                @Details.Gender
+                            }
+                        </li>
+                    }
+                    @if (IsEditing || Details.BirthDate.HasValue)
+                    {
+                        <li class="list-group-item">
+                            <strong>Birth Date: </strong>
+                            @if (IsEditing)
+                            {
+                                <input type="date" class="form-control" @bind="Details.BirthDate"/>
+                            }
+                            else
+                            {
+                                @Details.BirthDate?.ToString("yyyy-MM-dd")
+                            }
+                        </li>
+                    }
+                    @if (IsEditing || !string.IsNullOrWhiteSpace(Details.Location))
+                    {
+                        <li class="list-group-item">
+                            <strong>Location: </strong>
+                            @if (IsEditing)
+                            {
+                                <input class="form-control" @bind="Details.Location"/>
+                            }
+                            else
+                            {
+                                @Details.Location
+                            }
+                        </li>
+                    }
+                    @if (IsEditing || !string.IsNullOrWhiteSpace(Details.Interests))
+                    {
+                        <li class="list-group-item">
+                            <strong>Interests: </strong>
+                            @if (IsEditing)
+                            {
+                                <input class="form-control" @bind="Details.Interests"/>
+                            }
+                            else
+                            {
+                                @Details.Interests
+                            }
+                        </li>
+                    }
+                    @if (IsEditing || !string.IsNullOrWhiteSpace(Details.Occupation))
+                    {
+                        <li class="list-group-item">
+                            <strong>Occupation: </strong>
+                            @if (IsEditing)
+                            {
+                                <input class="form-control" @bind="Details.Occupation"/>
+                            }
+                            else
+                            {
+                                @Details.Occupation
+                            }
+                        </li>
+                    }
+                </ul>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">Signature</h5>
+                    @if (IsEditing)
+                    {
+                        <RichTextEditor @bind-Value="Signature"/>
+                    }
+                    else if (!string.IsNullOrWhiteSpace(Signature))
+                    {
+                        <div class="card-text" @markup:html="Signature"></div>
+                    }
+                </div>
+            </div>
+            
+            @if (isAdmin)
+            {
+                <div class="mb-3">
+                    <label class="form-label">Roles</label>
+                    @foreach (var role in roles)
+                    {
+                        <div class="form-check">
+                            @if (IsEditing)
+                            {
+                                <InputCheckbox id="@role" @bind-Value="selectedRoles[role]" class="form-check-input"/>
+                            }
+                            <label for="@role" class="form-check-label">@role</label>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+
+        @if (canEditUser)
+        {
+            <div class="d-flex justify-content-end">
+                @if (!IsEditing)
+                {
+                    <button class="btn btn-primary" @onclick="Edit">Edit</button>
+                }
+                else
+                {
+                    <button class="btn btn-success me-2" @onclick="SaveAsync">Save</button>
+                    <button class="btn btn-secondary" @onclick="() => IsEditing = false">Cancel</button>
+                }
+            </div>
+        }
     </div>
 }
 
@@ -44,37 +191,100 @@ else
     private const long MaxAllowedSize = 10485760; // 10 MB
 
     private ApplicationUser? user;
-    private bool isCurrentUser;
+    private bool canEditUser;
+    private bool isAdmin;
+    private bool IsEditing = false;
 
-    private string ProfilePictureUrl => user.GetProfilePictureUrl();
+    private string? ImageUrl;
+    private string? Signature;
+    private UserManagement.UserDetails Details = new();
+
+    private IBrowserFile? UploadedImage;
+    private string? PreviewImageUrl;
+    private byte[]? ImageBytes;
+
+    private List<string?> roles = new();
+    private Dictionary<string, bool> selectedRoles = new();
 
     protected override async Task OnParametersSetAsync()
     {
         if (!string.IsNullOrWhiteSpace(UserId))
         {
+            isAdmin = await AuthStateProvider.IsAdmin();
             user = await UserManager.FindByIdAsync(UserId);
-            var currentUser = await AuthStateProvider.GetUserId();
-            isCurrentUser = currentUser == user?.Id;
+
+            if (!isAdmin)
+            {
+                var currentUser = await AuthStateProvider.GetUserId();
+                canEditUser = currentUser == user?.Id;
+            }
+            else
+            {
+                canEditUser = true;
+
+                roles = (await RoleManager.Roles.Select(r => r.Name).ToListAsync()).ToList();
+                var userRoles = await UserManager.GetRolesAsync(user);
+                foreach (var role in roles)
+                {
+                    selectedRoles[role] = userRoles.Contains(role);
+                }
+            }
         }
+
+        ImageUrl = user.GetProfilePictureUrl();
+        PreviewImageUrl = ImageUrl;
+        Signature = user?.Signature;
+        Details = (user?.UserDetails ?? new UserManagement.UserDetails()) with { };
     }
 
     private async Task HandleImageUpload(InputFileChangeEventArgs e)
     {
-        if (e.File != null && user != null)
+        UploadedImage = e.File;
+
+        try
         {
-            var fileName = $"{user.UserName}_{Guid.NewGuid()}{Path.GetExtension(e.File.Name)}";
-            await using var stream = e.File.OpenReadStream(maxAllowedSize: MaxAllowedSize);
+            using var stream = UploadedImage.OpenReadStream(MaxAllowedSize);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            ImageBytes = ms.ToArray();
 
-            await using var resizedStream = await ImageProcessingHelper
-                .ResizeImageAsync(stream, 200, 200).ConfigureAwait(false);
+            PreviewImageUrl = $"data:{UploadedImage.ContentType};base64,{Convert.ToBase64String(ImageBytes)}";
+        }
+        catch
+        {
+            PreviewImageUrl = null;
+        }
+    }
 
-            var success = await ImageStorageService.UploadImageAsync(resizedStream, fileName);
+    private void Edit() => IsEditing = true;
 
-            if (success)
+    private async Task SaveAsync()
+    {
+        IsEditing = false;
+
+        user.Signature = Signature;
+        user.UserDetails = Details with { };
+
+        if (UploadedImage != null)
+        {
+            await using var stream = UploadedImage.OpenReadStream(MaxAllowedSize);
+
+            await AvatarCreationService.Create(stream, user, UploadedImage.Name);
+            ImageUrl = user.GetProfilePictureUrl();
+        }
+
+        if (isAdmin)
+        {
+            var currentRoles = await UserManager.GetRolesAsync(user);
+            await UserManager.RemoveFromRolesAsync(user, currentRoles);
+
+            var rolesToAdd = selectedRoles.Where(r => r.Value).Select(r => r.Key).ToList();
+            if (rolesToAdd.Any())
             {
-                user.ProfilePictureUrl = $"/image/{fileName}";
-                await UserManager.UpdateAsync(user);
+                await UserManager.AddToRolesAsync(user, rolesToAdd);
             }
         }
+
+        await UserManager.UpdateAsync(user);
     }
 }
