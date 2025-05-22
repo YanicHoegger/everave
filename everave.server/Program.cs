@@ -7,6 +7,7 @@ using everave.server.Components.GitHub;
 using everave.server.Forum;
 using everave.server.Import;
 using everave.server.Services;
+using everave.server.Services.Search;
 using everave.server.UserManagement;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -95,7 +96,13 @@ else
     builder.Services.AddScoped<IGitHubAccess, NoGitHubAccess>();
 }
 
-if (builder.Configuration.GetValue<bool>("UseElasticSearch"))
+if (builder.Configuration.GetValue<bool>("UseCoginitiveSearch"))
+{
+    builder.Services.AddHostedService<CognitiveSearchHostedService>();
+    builder.Services.AddHostedService<CognitiveSearchIndexer>();
+    builder.Services.AddScoped<ISearchService, CognitiveSearchService>();
+}
+else if (builder.Configuration.GetValue<bool>("UseElasticSearch"))
 {
     builder.Services.AddHostedService<ElasticSearchHostedService>();
     builder.Services.AddHostedService<ElasticIndexer>();

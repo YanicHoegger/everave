@@ -1,11 +1,11 @@
-﻿using Elastic.Clients.Elasticsearch;
+﻿using Azure.Search.Documents;
 using everave.server.Forum;
 
-namespace everave.server.Services
+namespace everave.server.Services.Search
 {
-    public class ElasticIndexer(IForumNotifier forumNotifier, IConfiguration configuration) : IHostedService
+    public class CognitiveSearchIndexer(IConfiguration configuration, IForumNotifier forumNotifier) : IHostedService
     {
-        private readonly ElasticsearchClient _client = ElasticSearch.CreateClient(configuration);
+        private readonly SearchClient _searchClient = CognitiveSearchHelper.GetSearchClient(configuration);
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
@@ -29,24 +29,26 @@ namespace everave.server.Services
 
         public async Task IndexPost(Post post)
         {
-            var doc = SearchDocument.Create(post);
-            await _client.IndexAsync(doc, ElasticSearch.IndexName, doc.Id);
+            await _searchClient.UploadDocumentsAsync([
+                CognitiveServiceDocument.CreateSearchDocument(SearchDocument.Create(post))
+            ]);
         }
 
         private async Task IndexTopic(Topic topic)
         {
-            var doc = SearchDocument.Create(topic);
-            await _client.IndexAsync(doc, ElasticSearch.IndexName, doc.Id);
+            await _searchClient.UploadDocumentsAsync([
+                CognitiveServiceDocument.CreateSearchDocument(SearchDocument.Create(topic))
+            ]);
         }
 
         private async Task DeleteTopic(Topic topic)
         {
-            await _client.DeleteAsync<SearchDocument>(topic.Id.ToString());
+            await _searchClient.DeleteDocumentsAsync([new CognitiveServiceDocument { Id = topic.Id.ToString() }]);
         }
 
         public async Task DeletePost(Post post)
         {
-            await _client.DeleteAsync<SearchDocument>(post.Id.ToString());
+            await _searchClient.DeleteDocumentsAsync([new CognitiveServiceDocument { Id = post.Id.ToString() }]);
         }
     }
 }

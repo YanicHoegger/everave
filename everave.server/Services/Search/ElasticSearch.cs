@@ -1,7 +1,7 @@
 ﻿using Elastic.Clients.Elasticsearch;
 using Elastic.Clients.Elasticsearch.QueryDsl;
 
-namespace everave.server.Services
+namespace everave.server.Services.Search
 {
     public class ElasticSearch(IConfiguration configuration) : ISearchService
     {

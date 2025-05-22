@@ -1,4 +1,4 @@
-﻿namespace everave.server.Services
+﻿namespace everave.server.Services.Search
 {
     public class EmptySearch : ISearchService
     {

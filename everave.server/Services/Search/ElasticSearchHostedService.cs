@@ -4,7 +4,7 @@ using Elastic.Clients.Elasticsearch.QueryDsl;
 using everave.server.Forum;
 using MongoDB.Driver;
 
-namespace everave.server.Services
+namespace everave.server.Services.Search
 {
     public class ElasticSearchHostedService(IConfiguration configuration, IMongoDatabase database) : IHostedService
     {
