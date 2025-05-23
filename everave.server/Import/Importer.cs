@@ -9,7 +9,8 @@ namespace everave.server.Import;
 public class Importer(IForumService forumService, 
     UserManager<ApplicationUser> userManager, 
     IConfiguration configuration,
-    AvatarCreationService avatarCreationService)
+    AvatarCreationService avatarCreationService,
+    ILogger<Importer> logger)
 {
     public async Task Import(ImportData importData)
     {
@@ -133,8 +134,24 @@ public class Importer(IForumService forumService,
             return;
         }
 
-        var stream = await (await new HttpClient().GetAsync(imageUrl)).Content.ReadAsStreamAsync();
-        await avatarCreationService.Create(stream, applicationUser, CreateFileName(imageUrl));
+        var httpResponseMessage = await new HttpClient().GetAsync(imageUrl);
+
+        if (!httpResponseMessage.IsSuccessStatusCode)
+        {
+            logger.LogWarning($"Failed to download image from {imageUrl}: {httpResponseMessage.StatusCode}");
+            return;
+        }
+
+        var stream = await httpResponseMessage.Content.ReadAsStreamAsync();
+
+        try
+        {
+            await avatarCreationService.Create(stream, applicationUser, CreateFileName(imageUrl));
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, $"Failed to create avatar from {imageUrl}");
+        }
     }
 
     private static string CreateFileName(string imageUrl)

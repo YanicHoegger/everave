@@ -1,12 +1,13 @@
 using everave.server.Import;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using System.Text.Json;
 
 namespace everave.server.Components.Controllers;
 
 [ApiController]
 [Route("api/import")]
-public class ImportController(IConfiguration configuration, IServiceScopeFactory serviceScopeFactory) : ControllerBase
+public class ImportController(IConfiguration configuration, IServiceScopeFactory serviceScopeFactory, ILogger<ImportController> logger) : ControllerBase
 {
     [HttpPost]
     //TODO: Could this be a potential thread? Would this be a good target for DDos?
@@ -38,7 +39,7 @@ public class ImportController(IConfiguration configuration, IServiceScopeFactory
             }
             catch (Exception e)
             {
-                Console.WriteLine(e);
+                logger.LogError(e, "Could not import data");
             }
         });
         
