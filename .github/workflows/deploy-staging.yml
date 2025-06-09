@@ -9,14 +9,15 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
 
-    env:
-      ACR_IMAGE: ${{ secrets.ACR_LOGIN_SERVER }}/everaveserver:${{ github.sha }}
-      SHORT_HASH: ${{ github.sha::12 }}
-      NEW_APP_NAME: ${{ secrets.AZURE_APP_SERVICE_NAME }}-slot-${{ github.sha::12 }}
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+
+      - name: Extract short commit hash
+        id: vars
+        run: |
+          echo "SHORT_HASH=${GITHUB_SHA::12}" >> $GITHUB_ENV
+          echo "NEW_APP_NAME=${{ secrets.AZURE_APP_SERVICE_NAME }}-SLOT-${GITHUB_SHA::12}" >> $GITHUB_ENV
 
       - name: Log in to Azure using OIDC
         uses: azure/login@v1
@@ -33,11 +34,11 @@ jobs:
 
       - name: Build Docker image with commit hash tag
         run: |
-          docker build -t $ACR_IMAGE --file everave.server/Dockerfile .
+          docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/everaveserver:${{ github.sha }} --file everave.server/Dockerfile .
 
       - name: Push Docker image
         run: |
-          docker push $ACR_IMAGE
+          docker push ${{ secrets.ACR_LOGIN_SERVER }}/everaveserver:${{ github.sha }}
 
       - name: Create new Web App with short commit hash
         run: |
@@ -45,14 +46,14 @@ jobs:
             --name $NEW_APP_NAME \
             --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
             --plan ${{ secrets.AZURE_APP_SERVICE_PLAN }} \
-            --deployment-container-image-name $ACR_IMAGE
+            --deployment-container-image-name ${{ secrets.ACR_LOGIN_SERVER }}/everaveserver:${{ github.sha }}
 
       - name: Configure container settings
         run: |
           az webapp config container set \
             --name $NEW_APP_NAME \
             --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
-            --docker-custom-image-name $ACR_IMAGE \
+            --docker-custom-image-name ${{ secrets.ACR_LOGIN_SERVER }}/everaveserver:${{ github.sha }} \
             --docker-registry-server-url https://${{ secrets.ACR_LOGIN_SERVER }}
 
       - name: Copy environment variables from main app to new app
