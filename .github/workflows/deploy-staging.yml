@@ -1,4 +1,4 @@
-name: Deploy to ACR as Staging and create a new slot
+name: Deploy to ACR and Create New Web App
 
 on:
   push:
@@ -9,65 +9,64 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
 
+    env:
+      ACR_IMAGE: ${{ secrets.ACR_LOGIN_SERVER }}/everaveserver:${{ github.sha }}
+      SHORT_HASH: ${{ github.sha::12 }}
+      NEW_APP_NAME: ${{ secrets.AZURE_APP_SERVICE_NAME }}-slot-${{ github.sha::12 }}
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Extract short commit hash
-        id: vars
-        run: echo "SHORT_HASH=${GITHUB_SHA::12}" >> $GITHUB_ENV
+      - name: Log in to Azure using OIDC
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          enable-AzPSSession: true
 
       - name: Log in to Azure Container Registry
         uses: azure/docker-login@v1
         with:
           login-server: ${{ secrets.ACR_LOGIN_SERVER }}
-          username: ${{ secrets.ACR_USERNAME }}
-          password: ${{ secrets.ACR_PASSWORD }}
 
       - name: Build Docker image with commit hash tag
         run: |
-          docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/everaveserver:$GITHUB_SHA --file everave.server/Dockerfile .
+          docker build -t $ACR_IMAGE --file everave.server/Dockerfile .
 
       - name: Push Docker image
         run: |
-          docker push ${{ secrets.ACR_LOGIN_SERVER }}/everaveserver:$GITHUB_SHA
+          docker push $ACR_IMAGE
 
-      - name: Log in to Azure
-        uses: azure/login@v1
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-      - name: Create a new slot with short commit hash
+      - name: Create new Web App with short commit hash
         run: |
-          az webapp deployment slot create \
-            --name ${{ secrets.AZURE_APP_SERVICE_NAME }} \
+          az webapp create \
+            --name $NEW_APP_NAME \
             --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
-            --slot $SHORT_HASH
+            --plan ${{ secrets.AZURE_APP_SERVICE_PLAN }} \
+            --deployment-container-image-name $ACR_IMAGE
 
-      - name: Deploy image to the new slot
+      - name: Configure container settings
         run: |
           az webapp config container set \
-            --name ${{ secrets.AZURE_APP_SERVICE_NAME }} \
+            --name $NEW_APP_NAME \
             --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
-            --slot $SHORT_HASH \
-            --container-image-name ${{ secrets.ACR_LOGIN_SERVER }}/everaveserver:$GITHUB_SHA \
-            --container-registry-url https://${{ secrets.ACR_LOGIN_SERVER }} \
-            --container-registry-user ${{ secrets.ACR_USERNAME }} \
-            --container-registry-password ${{ secrets.ACR_PASSWORD }}
+            --docker-custom-image-name $ACR_IMAGE \
+            --docker-registry-server-url https://${{ secrets.ACR_LOGIN_SERVER }}
 
-      - name: Copy environment variables from main app to slot
+      - name: Copy environment variables from main app to new app
         run: |
           MAIN_APP_SETTINGS=$(az webapp config appsettings list \
             --name ${{ secrets.AZURE_APP_SERVICE_NAME }} \
             --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
             --query "[].{name:name, value:value}" -o json)
 
-          echo $MAIN_APP_SETTINGS | jq -c '.[]' | while read i; do
+          echo "$MAIN_APP_SETTINGS" | jq -c '.[]' | while read i; do
             KEY=$(echo $i | jq -r '.name')
             VALUE=$(echo $i | jq -r '.value')
             az webapp config appsettings set \
-              --name ${{ secrets.AZURE_APP_SERVICE_NAME }} \
+              --name $NEW_APP_NAME \
               --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
-              --slot $SHORT_HASH \
-              --settings $KEY=$VALUE
+              --settings $KEY="$VALUE"
           done
