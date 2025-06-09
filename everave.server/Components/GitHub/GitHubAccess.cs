@@ -1,40 +1,76 @@
 ﻿using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
-using MongoDB.Bson;
 
 namespace everave.server.Components.GitHub
 {
     public class GitHubAccess : IGitHubAccess
     {
+        private readonly IConfiguration _config;
         private readonly HttpClient _http;
         private bool _isBusy;
 
         public GitHubAccess(IConfiguration config)
         {
-            if (string.IsNullOrWhiteSpace(config["GitHub:Owner"]) 
+            _config = config;
+
+            if (string.IsNullOrWhiteSpace(config["GitHub:Owner"])
                 || string.IsNullOrWhiteSpace(config["GitHub:Repo"])
-                || string.IsNullOrWhiteSpace(config["GitHub:Token"]))
+                || string.IsNullOrWhiteSpace(config["GitHub:AppId"])
+                || string.IsNullOrWhiteSpace(config["GitHub:PrivateKey"])
+                || string.IsNullOrWhiteSpace(config["GitHub:InstallationId"]))
             {
                 IsEnabled = false;
                 return;
             }
 
-            IsEnabled = true;
             _http = new HttpClient
             {
                 BaseAddress = new Uri($"https://api.github.com/repos/{config["GitHub:Owner"]}/{config["GitHub:Repo"]}/")
             };
             _http.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("App", "1.0"));
-            _http.DefaultRequestHeaders.Authorization =
-                new AuthenticationHeaderValue("token", config["GitHub:Token"]);
+
+            IsEnabled = true;
         }
+
+        private async Task EnsureAuthenticatedAsync()
+        {
+            var base64 = _config["GitHub:PrivateKey"];
+            var pem = Encoding.UTF8.GetString(Convert.FromBase64String(base64));
+            var jwt = GitHubJwtGenerator.GenerateJwt(
+                _config["GitHub:AppId"],
+                pem
+            );
+
+            var installationId = _config["GitHub:InstallationId"];
+
+            using var authClient = new HttpClient();
+            authClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", jwt);
+            authClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("App", "1.0"));
+            authClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
+
+            var response = await authClient.PostAsync(
+                $"https://api.github.com/app/installations/{installationId}/access_tokens", null);
+
+            var json = await response.Content.ReadAsStringAsync();
+            if (!response.IsSuccessStatusCode)
+                throw new Exception($"GitHub token error: {response.StatusCode} - {json}");
+
+            var doc = JsonDocument.Parse(json);
+            var token = doc.RootElement.GetProperty("token").GetString();
+
+            _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        }
+
 
         public async Task<List<DependabotPR>> GetDependabotPRsAsync()
         {
             IsBusy = true;
+            await EnsureAuthenticatedAsync();
+
             var prs = await _http.GetFromJsonAsync<JsonElement[]>("pulls");
             IsBusy = false;
+
             return prs?
                 .Where(pr => pr.GetProperty("user").GetProperty("login").GetString() == "dependabot[bot]")
                 .Select(pr => new DependabotPR
@@ -50,6 +86,8 @@ namespace everave.server.Components.GitHub
         public async Task ApprovePr(DependabotPR dependabotPr)
         {
             IsBusy = true;
+            await EnsureAuthenticatedAsync();
+
             var payload = new
             {
                 commit_title = $"Merge PR {dependabotPr.Title}",
@@ -73,6 +111,7 @@ namespace everave.server.Components.GitHub
         public async Task<List<DependabotAlert>> GetDependabotAlertsAsync()
         {
             IsBusy = true;
+            await EnsureAuthenticatedAsync();
 
             var response = await _http.GetFromJsonAsync<JsonElement[]>("dependabot/alerts");
 

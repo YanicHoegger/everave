@@ -6,8 +6,8 @@ using System.Web;
 
 namespace everave.server.Import;
 
-public class Importer(IForumService forumService, 
-    UserManager<ApplicationUser> userManager, 
+public class Importer(IForumService forumService,
+    UserManager<ApplicationUser> userManager,
     IConfiguration configuration,
     AvatarCreationService avatarCreationService,
     ILogger<Importer> logger)
@@ -30,41 +30,75 @@ public class Importer(IForumService forumService,
 
     private async Task ImportForumGroup(ImportData.ForumGroup forumGroup)
     {
-        var newForumGroup = new ForumGroup
+        var allForumGroups = await forumService.GetAllForumGroupsAsync();
+        ForumGroup newForumGroup;
+        var existingForumGroup = allForumGroups.FirstOrDefault(g => g.Description == forumGroup.Description);
+        if (existingForumGroup != null)
         {
-            Description = forumGroup.Description
-        };
-
-        await forumService.AddForumGroupAsync(newForumGroup);
-
-        foreach (var forum in forumGroup.Forums)
+            logger.LogDebug($"Forum group '{forumGroup.Description}' already exists.");
+            newForumGroup = existingForumGroup;
+        }
+        else
         {
-            var newForum = new Forum.Forum
+            newForumGroup = new ForumGroup
             {
-                Name = forum.Name,
-                Description = forum.Description,
-                GroupId = newForumGroup.Id
+                Description = forumGroup.Description
             };
 
-            await forumService.AddForumAsync(newForum);
+            await forumService.AddForumGroupAsync(newForumGroup);
+        }
 
-            foreach (var topic in forum.Topics)
+        var allForums = await forumService.GetForumsByGroupIdAsync(newForumGroup.Id);
+        foreach (var forum in forumGroup.Forums)
+        {
+            var existingForum = allForums.FirstOrDefault(f => f.Name == forum.Name);
+            Forum.Forum newForum;
+            if (existingForum != null)
             {
-                var author = await userManager.FindByNameAsync(topic.Author);
-                if (author == null)
+                logger.LogDebug($"Forum '{forum.Name}' already exists in group '{newForumGroup.Description}'.");
+                newForum = existingForum;
+            }
+            else
+            {
+                newForum = new Forum.Forum
                 {
-                    throw new Exception($"Author {topic.Author} not found.");
-                }
-
-                var newTopic = new Topic
-                {
-                    Title = topic.Title,
-                    ForumId = newForum.Id,
-                    CreatedByUserId = author.Id,
-                    CreatedAt = topic.CreatedAt
+                    Name = forum.Name,
+                    Description = forum.Description,
+                    GroupId = newForumGroup.Id
                 };
 
-                await forumService.AddTopicAsync(newTopic);
+                await forumService.AddForumAsync(newForum);
+
+            }
+
+            var allTopics = await forumService.GetTopicsByForumIdAsync(newForum.Id);
+            foreach (var topic in forum.Topics)
+            {
+                var existingTopic = allTopics.FirstOrDefault(t => t.Title == topic.Title);
+                Topic newTopic;
+                if (existingTopic != null)
+                {
+                    logger.LogDebug($"Topic '{topic.Title}' already exists in forum '{newForum.Name}'.");
+                    newTopic = existingTopic;
+                }
+                else
+                {
+                    var author = await userManager.FindByNameAsync(topic.Author);
+                    if (author == null)
+                    {
+                        throw new Exception($"Author {topic.Author} not found.");
+                    }
+
+                    newTopic = new Topic
+                    {
+                        Title = topic.Title,
+                        ForumId = newForum.Id,
+                        CreatedByUserId = author.Id,
+                        CreatedAt = topic.CreatedAt
+                    };
+
+                    await forumService.AddTopicAsync(newTopic);
+                }
 
                 foreach (var entry in topic.Posts)
                 {
@@ -165,7 +199,7 @@ public class Importer(IForumService forumService,
         {
             fileName = Path.GetFileName(uri.LocalPath);
 
-            if(fileName.Contains("?"))
+            if (fileName.Contains("?"))
                 throw new Exception($"File name {fileName} is not valid");
         }
 
